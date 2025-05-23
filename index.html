@@ -2,45 +2,227 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Hello World Script Index</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projects</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:600,400&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; max-width: 700px; margin: 2em auto; }
-    h1 { text-align: center; }
-    .folder { margin-top: 2em; }
-    .scripts { margin-left: 1.5em; }
-    a { color: #2d5be3; text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    :root {
+      --primary: #4f8cff;
+      --background: #181f2a;
+      --card: #222b3a;
+      --accent: #18ffe6;
+      --text: #ffffff;
+      --fade: #a0aec0;
+      --shadow: 0 4px 14px rgba(0,0,0,0.15);
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: 'Montserrat', Arial, sans-serif;
+      min-height: 100vh;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+    }
+    header {
+      width: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      padding: 2rem 0 1rem 0;
+      border-bottom-left-radius: 2em 1em;
+      border-bottom-right-radius: 2em 1em;
+      box-shadow: var(--shadow);
+      margin-bottom: 2rem;
+    }
+    h1 {
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      font-size: 2.5rem;
+      letter-spacing: 2px;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 2px 16px #4449;
+    }
+    .container {
+      width: 96vw;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    .folder {
+      width: 100%;
+      background: var(--card);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 1.2rem 1.2rem 0.9rem 1.2rem;
+      margin: 0 auto;
+      transition: transform 0.12s;
+    }
+    .folder:hover {
+      transform: scale(1.015) translateY(-2px);
+      box-shadow: 0 6px 20px #0003;
+    }
+    .folder-title {
+      font-size: 1.3rem;
+      color: var(--primary);
+      font-weight: 700;
+      margin-bottom: 0.6em;
+      letter-spacing: 1px;
+      text-shadow: 0 1px 4px #0002;
+    }
+    .scripts {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6em;
+    }
+    .scripts li {
+      border-left: 4px solid var(--accent);
+      background: #192030c7;
+      border-radius: 6px;
+      margin: 0;
+      padding: 0.7em 0.8em;
+      font-size: 1.06rem;
+      display: flex;
+      align-items: center;
+      transition: background 0.12s;
+    }
+    .scripts li:hover {
+      background: #252f43;
+    }
+    .scripts a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.16s;
+      font-family: inherit;
+      font-size: inherit;
+    }
+    .scripts a:active, .scripts a:focus {
+      color: var(--primary);
+    }
+    .badge {
+      margin-left: auto;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 8px;
+      padding: 0.1em 0.7em;
+      font-size: 0.78em;
+      font-weight: 700;
+      letter-spacing: 1px;
+      opacity: 0.93;
+      box-shadow: 0 2px 8px #0002;
+      user-select: none;
+    }
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2rem;
+      }
+      .container {
+        max-width: 98vw;
+        gap: 1.3rem;
+      }
+      .folder {
+        padding: 0.8rem 0.5rem 0.7rem 0.7rem;
+      }
+      .folder-title {
+        font-size: 1.07rem;
+      }
+    }
+    @media (max-width: 400px) {
+      .container {
+        max-width: 100vw;
+        padding: 0 2px;
+      }
+      .folder {
+        padding-left: 0.3rem;
+        padding-right: 0.3rem;
+      }
+    }
+    footer {
+      margin-top: auto;
+      text-align: center;
+      font-size: 0.96em;
+      color: var(--fade);
+      padding-bottom: 2em;
+      letter-spacing: 1px;
+    }
   </style>
 </head>
 <body>
-  <h1>Hello World Script Index</h1>
-
-  <div class="folder">
-    <h2>Folder 1</h2>
-    <ul class="scripts">
-      <li><a href="Folder1/F1_Script1" target="_blank">F1_Script1</a></li>
-      <li><a href="Folder1/F1_Script2" target="_blank">F1_Script2</a></li>
-      <li><a href="Folder1/F1_Script3" target="_blank">F1_Script3</a></li>
-    </ul>
-  </div>
-
-  <div class="folder">
-    <h2>Folder 2</h2>
-    <ul class="scripts">
-      <li><a href="Folder2/F2_Script1" target="_blank">F2_Script1</a></li>
-      <li><a href="Folder2/F2_Script2" target="_blank">F2_Script2</a></li>
-      <li><a href="Folder2/F2_Script3" target="_blank">F2_Script3</a></li>
-    </ul>
-  </div>
-
-  <div class="folder">
-    <h2>Folder 3</h2>
-    <ul class="scripts">
-      <li><a href="Folder3/F3_Script1" target="_blank">F3_Script1</a></li>
-      <li><a href="Folder3/F3_Script2" target="_blank">F3_Script2</a></li>
-      <li><a href="Folder3/F3_Script3" target="_blank">F3_Script3</a></li>
-    </ul>
-  </div>
+  <header>
+    <h1>Projects</h1>
+  </header>
+  <main class="container">
+    <section class="folder">
+      <div class="folder-title">Folder 1</div>
+      <ul class="scripts">
+        <li>
+          <a href="Folder1/F1_Script1" target="_blank">F1_Script1</a>
+          <span class="badge">.js</span>
+        </li>
+        <li>
+          <a href="Folder1/F1_Script2" target="_blank">F1_Script2</a>
+          <span class="badge">.js</span>
+        </li>
+        <li>
+          <a href="Folder1/F1_Script3" target="_blank">F1_Script3</a>
+          <span class="badge">.js</span>
+        </li>
+      </ul>
+    </section>
+    <section class="folder">
+      <div class="folder-title">Folder 2</div>
+      <ul class="scripts">
+        <li>
+          <a href="Folder2/F2_Script1" target="_blank">F2_Script1</a>
+          <span class="badge">.html</span>
+        </li>
+        <li>
+          <a href="Folder2/F2_Script2" target="_blank">F2_Script2</a>
+          <span class="badge">.html</span>
+        </li>
+        <li>
+          <a href="Folder2/F2_Script3" target="_blank">F2_Script3</a>
+          <span class="badge">.html</span>
+        </li>
+      </ul>
+    </section>
+    <section class="folder">
+      <div class="folder-title">Folder 3</div>
+      <ul class="scripts">
+        <li>
+          <a href="Folder3/F3_Script1" target="_blank">F3_Script1</a>
+          <span class="badge">.py</span>
+        </li>
+        <li>
+          <a href="Folder3/F3_Script2" target="_blank">F3_Script2</a>
+          <span class="badge">.py</span>
+        </li>
+        <li>
+          <a href="Folder3/F3_Script3" target="_blank">F3_Script3</a>
+          <span class="badge">.py</span>
+        </li>
+      </ul>
+    </section>
+  </main>
+  <footer>
+    <div>
+      &copy; 2025 ChatSplash &bull; Sleek project index for mobile &amp; desktop
+    </div>
+  </footer>
 </body>
 </html>
