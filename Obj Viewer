@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>3D Model Viewer Sandbox</title>
+  <style>
+    html, body {
+      margin:0; padding:0; overflow:hidden; background:#000;
+      -webkit-user-select:none; user-select:none; touch-action:manipulation;
+    }
+    #canvas { width:100vw; height:100vh; display:block; }
+
+    /* GUI container */
+    .dg.main {
+      width: 420px !important;
+      font-size: 18px !important;
+      position: absolute !important;
+      top: 20px; left: 20px;
+    }
+    /* Uniform row height */
+    .dg.main .cr {
+      height: 45px !important;
+      line-height: 45px !important;
+      border-left: none !important;
+      padding-left: 10px !important;
+      cursor: pointer;
+    }
+    /* Hide unwanted built-ins */
+    .dg.main .close-button,
+    .dg.main .folder .parent .arrow,
+    .dg.main .cr.boolean input { display: none !important; }
+
+    /* Dropdowns & sliders fill 43px, centered */
+    .dg.main .cr select,
+    .dg.main .cr input[type="range"] {
+      height: 43px !important;
+      margin: 1px 8px 1px 0 !important;
+      font-size: 16px !important;
+    }
+    input[type=range]::-webkit-slider-thumb { height:43px; width:15px; }
+    input[type=range]::-moz-range-thumb    { height:43px; width:15px; }
+
+    /* Center the close/open label */
+    .dg.main .close-controls {
+      text-align: center; font-weight: bold; font-size:18px!important;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <!-- three.js core & extras -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Water.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.9/build/dat.gui.min.js"></script>
+
+  <script>
+  window.addEventListener('load', () => {
+    // — Renderer & Scene —
+    const canvas   = document.getElementById('canvas'),
+          renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.enabled = true;
+    const scene = new THREE.Scene();
+    const baseColor = new THREE.Color(0xcccccc);
+    scene.background = baseColor;
+
+    // — Camera & Controls —
+    const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+    camera.position.set(0,5,10);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor = 0.1;
+
+    // — Helpers —
+    const axes = new THREE.AxesHelper(5),
+          grid = new THREE.GridHelper(10,10);
+    scene.add(axes, grid);
+
+    // — Water shader —
+    const waterGeom = new THREE.PlaneBufferGeometry(50,50);
+    const water     = new THREE.Water(waterGeom, {
+      textureWidth:512, textureHeight:512,
+      waterNormals: new THREE.TextureLoader().load(
+        'https://threejs.org/examples/textures/waternormals.jpg',
+        tex=>{ tex.wrapS=tex.wrapT=THREE.RepeatWrapping; }
+      ),
+      sunDirection: new THREE.Vector3(5,10,7.5).normalize(),
+      sunColor:0xffffff, waterColor:0x001e0f,
+      distortionScale:3.7, alpha:1.0, fog:false
+    });
+    water.rotation.x = -Math.PI/2;
+    water.visible = false;
+    scene.add(water);
+
+    // — Lights —
+    const amb = new THREE.AmbientLight(0xffffff,0.6),
+          dir = new THREE.DirectionalLight(0xffffff,0.8),
+          pt  = new THREE.PointLight(0xffffff,0.5,50);
+    dir.position.set(5,10,7.5);
+    pt.position.set(-5,5,-5);
+    scene.add(amb, dir, pt);
+
+    // — Skyboxes —
+    const loader = new THREE.CubeTextureLoader();
+    const skyboxes = {
+      None: null,
+      Pisa: loader.setPath('https://threejs.org/examples/textures/cube/pisa/').load(['px.png','nx.png','py.png','ny.png','pz.png','nz.png']),
+      MilkyWay: loader.setPath('https://threejs.org/examples/textures/cube/MilkyWay/').load(['dark-s_px.jpg','dark-s_nx.jpg','dark-s_py.jpg','dark-s_ny.jpg','dark-s_pz.jpg','dark-s_nz.jpg']),
+      Park: loader.setPath('https://threejs.org/examples/textures/cube/Park/').load(['posx.jpg','negx.jpg','posy.jpg','negy.jpg','posz.jpg','negz.jpg']),
+      Park2: loader.setPath('https://threejs.org/examples/textures/cube/Park2/').load(['posx.jpg','negx.jpg','posy.jpg','negy.jpg','posz.jpg','negz.jpg']),
+      Bridge: loader.setPath('https://threejs.org/examples/textures/cube/Bridge/').load(['posx.jpg','negx.jpg','posy.jpg','negy.jpg','posz.jpg','negz.jpg']),
+      Bridge2: loader.setPath('https://threejs.org/examples/textures/cube/Bridge2/').load(['posx.jpg','negx.jpg','posy.jpg','negy.jpg','posz.jpg','negz.jpg']),
+      SwedishRoyalCastle: loader.setPath('https://threejs.org/examples/textures/cube/SwedishRoyalCastle/').load(['px.jpg','nx.jpg','py.jpg','ny.jpg','pz.jpg','nz.jpg']),
+      GoldenGate: loader.setPath('https://threejs.org/examples/textures/cube/GoldenGate/').load(['posx.jpg','negx.jpg','posy.jpg','negy.jpg','posz.jpg','negz.jpg']),
+      VeniceSunset: loader.setPath('https://threejs.org/examples/textures/cube/VeniceSunset/').load(['px.jpg','nx.jpg','py.jpg','ny.jpg','pz.jpg','nz.jpg']),
+      Desert: loader.setPath('https://threejs.org/examples/textures/cube/Desert/').load(['px.jpg','nx.jpg','py.jpg','ny.jpg','pz.jpg','nz.jpg'])
+    };
+
+    // — Params & GUI setup —
+    const params = {
+      Model:     'car',
+      Grid:      true,
+      Skybox:    'None',
+      Type:      'None',
+      Foam:      0.5,
+      Material:  'None',
+      Height:    0,
+      Size:      1,
+      Shine:     30,
+      Wire:      false,
+      ToggleGUI: () => {
+        const vis = gui.domElement.style.display !== 'none';
+        gui.domElement.style.display = vis ? 'none' : 'block';
+        toggleCtrl.name(vis ? 'Open' : 'Close');
+      }
+    };
+
+    const gui = new dat.GUI({ width:420, autoPlace:false });
+    document.body.appendChild(gui.domElement);
+    gui.domElement.classList.add('dg','main');
+
+    // 1. Model
+    gui.add(params,'Model',{
+      Car:'car',
+      FloatingFarm1:'farm',
+      Vending1:'vending',
+      City1:'city',
+      Selfie:'selfie'
+    }).name('Model').onChange(loadModel);
+
+    // 2. Grid
+    gui.add(params,'Grid').name('Grid').onChange(v => grid.visible = v);
+
+    // 3. Water & Foam
+    const waterCtrl = gui.add(params,'Type', ['None','Water1','Water2','Water3','Water4','Water5','Water6'])
+                         .name('Water').onChange(setWater);
+    waterCtrl.domElement.querySelector('select').style.height = '43px';
+    gui.add(params,'Foam', 0,1).step(0.01).name('Foam').onChange(setFoam);
+
+    // 4. Skybox
+    gui.add(params,'Skybox', Object.keys(skyboxes))
+       .name('Skybox').onChange(k => scene.background = skyboxes[k] || baseColor);
+
+    // 5. Materials
+    gui.add(params,'Material', ['None','Metal','Glass','Lava','Chrome','Plastic'])
+       .name('Materials').onChange(applyMaterial);
+
+    // 6. Height
+    gui.add(params,'Height', -2,5).name('Height').onChange(v => {
+      if(cur) cur.position.y = baseY + v;
+    });
+
+    // 7. Size
+    gui.add(params,'Size', 0.1,5).name('Size').onChange(v => {
+      if(cur) cur.scale.setScalar(cur.userData.baseScale * v);
+    });
+
+    // 8. Shine
+    gui.add(params,'Shine', 0,100).name('Shine').onChange(v => {
+      if(cur) cur.traverse(m => {
+        if(m.isMesh && m.material.shininess != null) {
+          m.material.shininess = v;
+          m.material.needsUpdate = true;
+        }
+      });
+    });
+
+    // 9. Wireframe
+    gui.add(params,'Wire').name('Wire').onChange(v => {
+      if(cur) cur.traverse(m => m.isMesh && (m.material.wireframe = v));
+    });
+
+    // 10. Close/Open toggle
+    const toggleCtrl = gui.add(params,'ToggleGUI').name('Close');
+    toggleCtrl.domElement.parentElement.classList.add('close-controls');
+
+    // — Models registry & loader —
+    const models = {
+      car:     { type:'obj',  base:'https://files.catbox.moe/', mtl:'svxkto.mtl', obj:'beup7d.obj', tex:'juqg75.png' },
+      farm:    { type:'obj',  base:'https://files.catbox.moe/', mtl:'jire1k.mtl', obj:'lhyics.obj', tex:'af3vqp.png' },
+      vending: { type:'obj',  base:'https://files.catbox.moe/', mtl:'6nmt2b.mtl', obj:'jdpx1b.obj', tex:'rw1z5h.png' },
+      city:    { type:'obj',  base:'https://files.catbox.moe/', mtl:'mvgcnr.mtl', obj:'nfh91v.obj', tex:'o6iq1g.png' },
+      selfie:  { type:'glb',  url:'https://files.catbox.moe/783o44.glb' }
+    };
+    let cur = null, baseY = 0;
+
+    function loadModel(key){
+      const info = models[key];
+      if(!info) return;
+      // clean up previous
+      if(cur){
+        scene.remove(cur);
+        cur.traverse(c => {
+          c.geometry?.dispose();
+          if(c.material){
+            Array.isArray(c.material)
+              ? c.material.forEach(m => m.dispose())
+              : c.material.dispose();
+          }
+        });
+      }
+      // GLB
+      if(info.type === 'glb'){
+        new THREE.GLTFLoader().load(info.url, gltf => {
+          const obj = gltf.scene;
+          scene.add(obj);
+          cur = obj;
+          fitAndPosition(obj);
+        });
+      }
+      // OBJ+MTL
+      else if(info.type === 'obj'){
+        new THREE.MTLLoader().setResourcePath(info.base).setPath(info.base)
+          .load(info.mtl, mats => {
+            mats.preload();
+            Object.values(mats.materials).forEach(m => m.side = THREE.DoubleSide);
+            new THREE.OBJLoader().setMaterials(mats).setPath(info.base)
+              .load(info.obj, obj => {
+                const tex = new THREE.TextureLoader().load(info.base + info.tex);
+                obj.traverse(ch => {
+                  if(ch.isMesh){
+                    ch.material.map = tex;
+                    ch.material.needsUpdate = true;
+                    ch.castShadow = ch.receiveShadow = true;
+                    if(ch.material.shininess != null) ch.material.shininess = params.Shine;
+                  }
+                });
+                scene.add(obj);
+                cur = obj;
+                fitAndPosition(obj);
+              });
+          });
+      }
+    }
+
+    function fitAndPosition(obj){
+      // common centering & scaling
+      const box = new THREE.Box3().setFromObject(obj),
+            sz  = box.getSize(new THREE.Vector3()),
+            s   = 4/Math.max(sz.x,sz.y,sz.z);
+      obj.userData.baseScale = s;
+      obj.scale.setScalar(s * params.Size);
+      const ctr = box.getCenter(new THREE.Vector3());
+      obj.position.set(-ctr.x, 0, -ctr.z);
+      baseY = -new THREE.Box3().setFromObject(obj).min.y;
+      obj.position.y = baseY + params.Height;
+    }
+
+    function setWater(type){
+      if(type==='None'){
+        water.visible = false;
+      } else {
+        water.visible = true;
+        const P = {
+          Water1:{color:0x001e0f,dist:3.7},
+          Water2:{color:0x00aaff,dist:1.5},
+          Water3:{color:0x003366,dist:6},
+          Water4:{color:0x336699,dist:2},
+          Water5:{color:0x111122,dist:8},
+          Water6:{color:0x220011,dist:12}
+        }[type];
+        water.material.uniforms.waterColor.value.setHex(P.color);
+        water.material.uniforms.distortionScale.value = P.dist;
+      }
+    }
+
+    function setFoam(v){
+      water.material.uniforms.alpha.value = THREE.MathUtils.lerp(0.1,1.0,v);
+    }
+
+    function applyMaterial(name){
+      if(!cur) return;
+      const presets = {
+        Metal: new THREE.MeshStandardMaterial({ color:0x888888, metalness:1, roughness:0.2 }),
+        Glass: new THREE.MeshPhysicalMaterial({ color:0x66ccff, metalness:0, roughness:0, transparent:true, opacity:0.25, transmission:0.9 }),
+        Lava:  new THREE.MeshStandardMaterial({ color:0xff3300, emissive:0x660000, metalness:0.1, roughness:1 }),
+        Chrome:new THREE.MeshStandardMaterial({ color:0xffffff, metalness:1, roughness:0 }),
+        Plastic:new THREE.MeshPhongMaterial({ color:0xff00ff, shininess:100 })
+      };
+      cur.traverse(c=>{
+        if(c.isMesh){
+          c.material.dispose();
+          if(name==='None') {
+            c.material = new THREE.MeshPhongMaterial({ color:0x999999, shininess:params.Shine });
+          } else {
+            c.material = presets[name].clone();
+          }
+          c.material.needsUpdate = true;
+        }
+      });
+    }
+
+    // initial model
+    loadModel('car');
+
+    // Animate & resize
+    const clock = new THREE.Clock();
+    (function animate(){
+      requestAnimationFrame(animate);
+      const d = clock.getDelta();
+      if(water.visible) water.material.uniforms.time.value += d;
+      controls.update();
+      renderer.render(scene, camera);
+    })();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  });
+  </script>
+</body>
+</html>
