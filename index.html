@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <title>Projects</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <!--
+    ======== STYLE SECTION ========
+    - All the CSS for colors, layout, and responsive design is here.
+    - You can tweak the colors or spacing as you like.
+  -->
   <link href="https://fonts.googleapis.com/css?family=Montserrat:600,400&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -65,21 +70,56 @@
       background: var(--card);
       border-radius: 18px;
       box-shadow: var(--shadow);
-      padding: 1.2rem 1.2rem 0.9rem 1.2rem;
       margin: 0 auto;
       transition: transform 0.12s;
+      overflow: hidden;
     }
     .folder:hover {
       transform: scale(1.015) translateY(-2px);
       box-shadow: 0 6px 20px #0003;
     }
+    .folder-header {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      padding: 1.2rem 1.2rem 0.9rem 1.2rem;
+      user-select: none;
+      transition: background 0.14s;
+    }
+    .folder-header:hover {
+      background: #202a3a;
+    }
     .folder-title {
       font-size: 1.3rem;
       color: var(--primary);
       font-weight: 700;
-      margin-bottom: 0.6em;
       letter-spacing: 1px;
       text-shadow: 0 1px 4px #0002;
+      flex: 1;
+    }
+    .chevron {
+      transition: transform 0.28s cubic-bezier(.4,2,.6,1);
+      width: 1.2em;
+      height: 1.2em;
+      margin-right: 0.5em;
+      fill: var(--accent);
+      flex-shrink: 0;
+    }
+    .folder.collapsed .chevron {
+      transform: rotate(-90deg);
+    }
+    .folder-content {
+      padding: 0 1.2rem 1.2rem 1.7rem;
+      max-height: 1000px;
+      opacity: 1;
+      transition: max-height 0.38s cubic-bezier(.4,2,.6,1), opacity 0.22s;
+      will-change: max-height, opacity;
+    }
+    .folder.collapsed .folder-content {
+      max-height: 0;
+      opacity: 0;
+      padding-bottom: 0;
+      overflow: hidden;
     }
     .scripts {
       list-style: none;
@@ -135,8 +175,11 @@
         max-width: 98vw;
         gap: 1.3rem;
       }
-      .folder {
+      .folder-header {
         padding: 0.8rem 0.5rem 0.7rem 0.7rem;
+      }
+      .folder-content {
+        padding: 0 0.5rem 0.7rem 1.2rem;
       }
       .folder-title {
         font-size: 1.07rem;
@@ -147,9 +190,13 @@
         max-width: 100vw;
         padding: 0 2px;
       }
-      .folder {
+      .folder-header {
         padding-left: 0.3rem;
         padding-right: 0.3rem;
+      }
+      .folder-content {
+        padding-left: 0.9rem;
+        padding-right: 0.2rem;
       }
     }
     footer {
@@ -163,66 +210,145 @@
   </style>
 </head>
 <body>
+  <!--
+    ======== HEADER SECTION ========
+    - The top banner with the title.
+    - You can change the text in <h1> to whatever you want your site/project index to be called.
+  -->
   <header>
     <h1>Projects</h1>
   </header>
+  <!--
+    ======== MAIN CONTAINER ========
+    - Holds all the collapsible folders.
+    - Each folder is a <section> element.
+    - To add more folders, copy a whole <section class="folder">...</section> block and change names.
+  -->
   <main class="container">
-    <section class="folder">
-      <div class="folder-title">Folder 1</div>
-      <ul class="scripts">
-        <li>
-          <a href="Folder1/F1_Script1" target="_blank">F1_Script1</a>
-          <span class="badge">.js</span>
-        </li>
-        <li>
-          <a href="Folder1/F1_Script2" target="_blank">F1_Script2</a>
-          <span class="badge">.js</span>
-        </li>
-        <li>
-          <a href="Folder1/F1_Script3" target="_blank">F1_Script3</a>
-          <span class="badge">.js</span>
-        </li>
-      </ul>
+    <!--
+      ======== FOLDER 1 ========
+      - To rename, change "Folder 1" in the .folder-title div.
+      - To add/remove scripts, edit the <li> blocks.
+      - "collapsed" class means the folder starts closed.
+    -->
+    <section class="folder collapsed">
+      <!--
+        ======== FOLDER HEADER ========
+        - Click this area (or press Enter/Space when focused) to open/close.
+        - Chevron arrow rotates when open.
+      -->
+      <div class="folder-header" tabindex="0" aria-expanded="false" aria-controls="folder1-content">
+        <!-- Arrow icon (chevron) -->
+        <svg class="chevron" viewBox="0 0 20 20"><polyline points="7 7 12.5 10.5 7 14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="folder-title">Folder 1</div>
+      </div>
+      <!--
+        ======== FOLDER CONTENT ========
+        - This area slides open/closed.
+        - Inside, list your links/scripts.
+        - To change or add links, edit/add <li> items.
+        - The badge shows file type.
+      -->
+      <div class="folder-content" id="folder1-content">
+        <ul class="scripts">
+          <li>
+            <a href="Folder1/F1_Script1" target="_blank">F1_Script1</a>
+            <span class="badge">.js</span>
+          </li>
+          <li>
+            <a href="Folder1/F1_Script2" target="_blank">F1_Script2</a>
+            <span class="badge">.js</span>
+          </li>
+          <li>
+            <a href="Folder1/F1_Script3" target="_blank">F1_Script3</a>
+            <span class="badge">.js</span>
+          </li>
+        </ul>
+      </div>
     </section>
-    <section class="folder">
-      <div class="folder-title">Folder 2</div>
-      <ul class="scripts">
-        <li>
-          <a href="Folder2/F2_Script1" target="_blank">F2_Script1</a>
-          <span class="badge">.html</span>
-        </li>
-        <li>
-          <a href="Folder2/F2_Script2" target="_blank">F2_Script2</a>
-          <span class="badge">.html</span>
-        </li>
-        <li>
-          <a href="Folder2/F2_Script3" target="_blank">F2_Script3</a>
-          <span class="badge">.html</span>
-        </li>
-      </ul>
+    <!-- ======== FOLDER 2 ======== -->
+    <section class="folder collapsed">
+      <div class="folder-header" tabindex="0" aria-expanded="false" aria-controls="folder2-content">
+        <svg class="chevron" viewBox="0 0 20 20"><polyline points="7 7 12.5 10.5 7 14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="folder-title">Folder 2</div>
+      </div>
+      <div class="folder-content" id="folder2-content">
+        <ul class="scripts">
+          <li>
+            <a href="Folder2/F2_Script1" target="_blank">F2_Script1</a>
+            <span class="badge">.html</span>
+          </li>
+          <li>
+            <a href="Folder2/F2_Script2" target="_blank">F2_Script2</a>
+            <span class="badge">.html</span>
+          </li>
+          <li>
+            <a href="Folder2/F2_Script3" target="_blank">F2_Script3</a>
+            <span class="badge">.html</span>
+          </li>
+        </ul>
+      </div>
     </section>
-    <section class="folder">
-      <div class="folder-title">Folder 3</div>
-      <ul class="scripts">
-        <li>
-          <a href="Folder3/F3_Script1" target="_blank">F3_Script1</a>
-          <span class="badge">.py</span>
-        </li>
-        <li>
-          <a href="Folder3/F3_Script2" target="_blank">F3_Script2</a>
-          <span class="badge">.py</span>
-        </li>
-        <li>
-          <a href="Folder3/F3_Script3" target="_blank">F3_Script3</a>
-          <span class="badge">.py</span>
-        </li>
-      </ul>
+    <!-- ======== FOLDER 3 ======== -->
+    <section class="folder collapsed">
+      <div class="folder-header" tabindex="0" aria-expanded="false" aria-controls="folder3-content">
+        <svg class="chevron" viewBox="0 0 20 20"><polyline points="7 7 12.5 10.5 7 14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="folder-title">Folder 3</div>
+      </div>
+      <div class="folder-content" id="folder3-content">
+        <ul class="scripts">
+          <li>
+            <a href="Folder3/F3_Script1" target="_blank">F3_Script1</a>
+            <span class="badge">.py</span>
+          </li>
+          <li>
+            <a href="Folder3/F3_Script2" target="_blank">F3_Script2</a>
+            <span class="badge">.py</span>
+          </li>
+          <li>
+            <a href="Folder3/F3_Script3" target="_blank">F3_Script3</a>
+            <span class="badge">.py</span>
+          </li>
+        </ul>
+      </div>
     </section>
   </main>
+  <!--
+    ======== FOOTER ========
+    - Can be edited or removed.
+    - Shows copyright.
+  -->
   <footer>
     <div>
-      &copy; 2025 ChatSplash &bull; Sleek project index for mobile &amp; desktop
+      &copy; 2025 ChatSplash
     </div>
   </footer>
+  <!--
+    ======== JAVASCRIPT: Collapsible Folders ========
+    - Handles folder open/close when clicked or focused & Enter/Space is pressed.
+    - No libraries required; just plain JS.
+    - "collapsed" class controls the open/closed state.
+    - You don't need to edit this unless you want to change functionality.
+  -->
+  <script>
+    // Find all folders and set up click/keyboard events for toggling
+    document.querySelectorAll('.folder').forEach(function(folder) {
+      var header = folder.querySelector('.folder-header');
+      header.setAttribute('aria-expanded', "false");
+      folder.classList.add('collapsed'); // ensures all are closed by default
+      header.addEventListener('click', function() {
+        folder.classList.toggle('collapsed');
+        // For accessibility: update aria-expanded attribute
+        header.setAttribute('aria-expanded', String(!folder.classList.contains('collapsed')));
+      });
+      // Keyboard accessibility (toggle with Enter/Space when focused)
+      header.addEventListener('keydown', function(e) {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          header.click();
+        }
+      });
+    });
+  </script>
 </body>
 </html>
