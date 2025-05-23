@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soda Fountain Simulator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+
+    /* Prevent text selection on buttons (and other elements) */
+    .button, button, .tray-cell {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    /* MACHINE CONTAINER */
+    .machine {
+      width: 320px;
+      background: #333;
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      position: relative;
+    }
+
+    /* DISPENSER COLUMN */
+    .dispenser {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    /* BUTTON STYLES */
+    .button {
+      width: 70px;
+      height: 30px;
+      border: none;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-bottom: 5px;
+    }
+    .cola { background: brown; }
+    .lemon { background: green; }
+    .orange { background: orange; }
+
+    /* UPSIDE-DOWN TRIANGLE NOZZLE */
+    .nozzle {
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 15px solid gray; /* Upside-down triangle */
+      position: relative;
+      top: -5px;
+    }
+
+    /* SODA STREAM */
+    .stream {
+      position: absolute;
+      width: 6px;
+      height: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      background: transparent;
+      transition: height 0.1s;
+    }
+
+    /* TRAY FOR GLASS */
+    .tray {
+      position: relative;
+      width: 320px;
+      height: 120px;
+      margin-top: 20px;
+      border: 1px dashed #ccc;
+      display: flex;
+    }
+    .tray-cell {
+      flex: 1;
+      border-right: 1px dashed #ccc;
+      text-align: center;
+      line-height: 120px;
+      cursor: pointer;
+      position: relative;
+    }
+    .tray-cell:last-child {
+      border-right: none;
+    }
+    .tray-cell:hover {
+      background: #eaeaea;
+    }
+
+    /* GLASS */
+    .glass {
+      position: absolute;
+      width: 60px;
+      height: 80px;
+      border: 3px solid black;
+      border-bottom-left-radius: 10px;
+      border-bottom-right-radius: 10px;
+      background: white;
+      display: none;
+      bottom: 10px;
+    }
+    .liquid {
+      width: 100%;
+      height: 0;
+      position: absolute;
+      bottom: 0;
+      transition: height 0.1s;
+    }
+  </style>
+</head>
+<body>
+  <!-- MACHINE -->
+  <div class="machine">
+    <!-- DISPENSERS -->
+    <div class="dispenser" data-type="cola">
+      <button class="button cola" 
+              ontouchstart="startPour('cola')" ontouchend="stopPour()" 
+              onmousedown="startPour('cola')" onmouseup="stopPour()" onmouseleave="stopPour()">
+        Cola
+      </button>
+      <div class="nozzle">
+        <div class="stream" id="colaStream"></div>
+      </div>
+    </div>
+    <div class="dispenser" data-type="lemon">
+      <button class="button lemon" 
+              ontouchstart="startPour('lemon')" ontouchend="stopPour()" 
+              onmousedown="startPour('lemon')" onmouseup="stopPour()" onmouseleave="stopPour()">
+        Lemon-Lime
+      </button>
+      <div class="nozzle">
+        <div class="stream" id="lemonStream"></div>
+      </div>
+    </div>
+    <div class="dispenser" data-type="orange">
+      <button class="button orange" 
+              ontouchstart="startPour('orange')" ontouchend="stopPour()" 
+              onmousedown="startPour('orange')" onmouseup="stopPour()" onmouseleave="stopPour()">
+        Orange
+      </button>
+      <div class="nozzle">
+        <div class="stream" id="orangeStream"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRAY -->
+  <div class="tray" id="tray">
+    <div class="tray-cell" data-type="cola">Cola</div>
+    <div class="tray-cell" data-type="lemon">Lemon-Lime</div>
+    <div class="tray-cell" data-type="orange">Orange</div>
+    <div class="glass" id="glass">
+      <div class="liquid" id="liquid"></div>
+    </div>
+  </div>
+
+  <script>
+    const colors = {
+      cola: 'brown',
+      lemon: 'lightgreen',
+      orange: 'orange'
+    };
+
+    let pouring = false;
+    let currentGlassType = null;
+    let pourInterval;
+
+    function startPour(type) {
+      if (currentGlassType !== type || pouring) return;
+      const liquid = document.getElementById('liquid');
+      const stream = document.getElementById(type + 'Stream');
+
+      pouring = true;
+      stream.style.background = colors[type];
+      stream.style.height = '70px'; // Extend stream to reach into the cup
+
+      pourInterval = setInterval(() => {
+        if (liquid.clientHeight < 75) {
+          liquid.style.height = (liquid.clientHeight + 2) + 'px';
+          liquid.style.background = colors[type];
+        }
+      }, 100);
+    }
+
+    function stopPour() {
+      clearInterval(pourInterval);
+      document.querySelectorAll('.stream').forEach(stream => {
+        stream.style.height = '0';
+      });
+      pouring = false;
+    }
+
+    // GLASS POSITIONING ON TRAY
+    const trayCells = document.querySelectorAll('.tray-cell');
+    const glass = document.getElementById('glass');
+    const tray = document.getElementById('tray');
+
+    trayCells.forEach(cell => {
+      cell.addEventListener('click', () => {
+        const type = cell.getAttribute('data-type');
+        currentGlassType = type;
+        const cellRect = cell.getBoundingClientRect();
+        const trayRect = tray.getBoundingClientRect();
+        const cellLeftRelative = cellRect.left - trayRect.left;
+        const cellWidth = cellRect.width;
+        const newLeft = cellLeftRelative + (cellWidth - 60) / 2;
+        glass.style.left = newLeft + 'px';
+        glass.style.display = 'block';
+        document.getElementById('liquid').style.height = '0';
+      });
+    });
+  </script>
+</body>
+</html>

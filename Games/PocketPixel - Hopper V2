@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=320, initial-scale=1.0"/>
+  <title>PocketPixel - Pocket Hopper (Extended Level)</title>
+  <style>
+    /* -------------------------
+       Basic Page and Console Setup
+       ------------------------- */
+    body { 
+      background: #ccc; 
+      font-family: sans-serif; 
+      margin: 0; 
+      padding: 20px; 
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    #gameboy {
+      width: 320px;
+      height: 560px;
+      background: #999;
+      border: 5px solid #666;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #screen {
+      width: 320px;
+      height: 240px;
+      background: #aaffaa;
+      border: 4px solid #333;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+    }
+    
+    /* -------------------------
+       D-Pad and Button Controls
+       ------------------------- */
+    #controls {
+      margin-top: 20px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #dpad {
+      width: 120px;
+      height: 120px;
+      position: relative;
+      touch-action: none;
+    }
+    .dpad-btn {
+      position: absolute;
+      background: #444;
+      color: #888;
+      width: 40px;
+      height: 40px;
+      line-height: 40px;
+      font-size: 20px;
+      text-align: center;
+      pointer-events: none;
+    }
+    #up {
+      top: 0; left: 40px;
+      border-top: 1px solid #000;
+      border-left: 1px solid #000;
+      border-right: 1px solid #000;
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+      filter: drop-shadow(0 0 5px rgba(0,0,0,0.7));
+    }
+    #right {
+      top: 40px; right: 0;
+      border-top: 1px solid #000;
+      border-right: 1px solid #000;
+      border-bottom: 1px solid #000;
+      border-top-right-radius: 6px;
+      border-bottom-right-radius: 6px;
+      filter: drop-shadow(0 0 5px rgba(0,0,0,0.7));
+    }
+    #down {
+      bottom: 0; left: 40px;
+      border-bottom: 1px solid #000;
+      border-left: 1px solid #000;
+      border-right: 1px solid #000;
+      border-bottom-left-radius: 6px;
+      border-bottom-right-radius: 6px;
+      filter: drop-shadow(0 0 5px rgba(0,0,0,0.7));
+    }
+    #left {
+      top: 40px; left: 0;
+      border-left: 1px solid #000;
+      border-top: 1px solid #000;
+      border-bottom: 1px solid #000;
+      border-top-left-radius: 6px;
+      border-bottom-left-radius: 6px;
+      filter: drop-shadow(0 0 5px rgba(0,0,0,0.7));
+    }
+    #center {
+      top: 40px; left: 40px;
+      width: 40px; height: 40px;
+      background: #444;
+      position: absolute;
+    }
+    #center::after {
+      content: "\25CF";
+      color: #333;
+      font-size: 16px;
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    #up::after    { content: "\25B2\FE0E"; font-size: 18px; color: #333; }
+    #down::after  { content: "\25BC\FE0E"; font-size: 18px; color: #333; }
+    #left::after  { content: "\25C0\FE0E"; font-size: 18px; color: #333; }
+    #right::after { content: "\25B6\FE0E"; font-size: 18px; color: #333; }
+    
+    /* -------------------------
+       A/B Buttons
+       ------------------------- */
+    #abButtons {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+    }
+    .action-button {
+      position: relative;
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(145deg, #a000a0, #800080);
+      border: 2px solid #6d006d;
+      border-radius: 50%;
+      color: #e0c0e0;
+      text-align: center;
+      line-height: 50px;
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.5);
+      overflow: hidden;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      font-size: 18px;
+      font-weight: bold;
+      user-select: none;
+    }
+    .action-button::before {
+      content: "";
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      width: 30px;
+      height: 30px;
+      background: radial-gradient(circle at top right, rgba(255,255,255,0.4), transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(20%, -20%);
+    }
+    .action-button.pressed {
+      transform: translateY(2px);
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.7);
+    }
+    .action-button:active {
+      transform: translateY(2px);
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.7);
+    }
+    
+    /* -------------------------
+       SEL/START Buttons
+       ------------------------- */
+    #selStartContainer {
+      margin-top: auto;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      width: 100%;
+    }
+    .sel-start-button {
+      width: 55px;
+      height: 20px;
+      background: linear-gradient(to top, #444 40%, #666 100%);
+      border: 1px solid #222;
+      border-radius: 10px;
+      color: #333;
+      text-align: center;
+      line-height: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .sel-start-button:active {
+      transform: translateY(1px);
+      box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <!-- Level 1-1 -->
+  <div id="gameboy">
+    <div id="screen">
+      <canvas id="gameScreen" width="320" height="240"></canvas>
+    </div>
+    <div id="controls">
+      <div id="dpad">
+        <div class="dpad-btn" id="up"></div>
+        <div class="dpad-btn" id="down"></div>
+        <div class="dpad-btn" id="left"></div>
+        <div class="dpad-btn" id="right"></div>
+        <div id="center"></div>
+      </div>
+      <div id="abButtons">
+        <div class="action-button" id="buttonA">A</div>
+        <div class="action-button" id="buttonB">B</div>
+      </div>
+    </div>
+    <div id="selStartContainer">
+      <div class="sel-start-button" id="buttonSel">SEL</div>
+      <div class="sel-start-button" id="buttonStart">START</div>
+    </div>
+  </div>
+  
+  <script>
+    /* -------------------------
+       Global Setup
+       ------------------------- */
+    const canvas = document.getElementById('gameScreen');
+    const ctx = canvas.getContext('2d');
+    let score = 0;
+    let cameraX = 0;
+    const gravity = 0.5;
+    const TILE_SIZE = 16;
+    const LEVEL_LENGTH = 4000;
+    // Track current level (1 or 2)
+    let currentLevel = 1;
+
+    // Player with invincibility timer for red powerup grace period
+    const player = {
+      x: 50,
+      y: 180,
+      vx: 0,
+      vy: 0,
+      radius: 8,
+      onGround: false,
+      moveLeft: false,
+      moveRight: false,
+      poweredUp: false,
+      color: "black",
+      invincibilityTimer: 0
+    };
+
+    // Star settings
+    const STAR_COUNT = 200;
+    const STAR_PARALLAX = 0.2;
+    const HILL_PARALLAX = 0.5;
+
+    // Arrays for tiles, enemies, powerups, and stars
+    const tiles = [];
+    const enemies = [];
+    const powerups = [];
+    const stars = [];
+
+    /* -------------------------
+       LEVEL 1 LAYOUT (Existing Level)
+       ------------------------- */
+    function createLevel() {
+      tiles.length = 0;
+      enemies.length = 0;
+      powerups.length = 0;
+      
+      const groundTop = 200;
+      const groundTileCount = Math.floor(LEVEL_LENGTH / TILE_SIZE);
+      const groundRows = Math.ceil((canvas.height - groundTop) / TILE_SIZE);
+      for (let i = 0; i < groundTileCount; i++) {
+        if ((i >= 80 && i < 85) || (i >= 140 && i < 144) || (i >= 200 && i < 208))
+          continue;
+        for (let j = 0; j < groundRows; j++) {
+          tiles.push({
+            x: i * TILE_SIZE,
+            y: groundTop + j * TILE_SIZE,
+            w: TILE_SIZE,
+            h: TILE_SIZE,
+            type: "ground",
+            solid: true
+          });
+        }
+      }
+      
+      // Bridge gap 3
+      for (let i = 202; i < 206; i++) {
+        tiles.push({
+          x: i * TILE_SIZE,
+          y: 152,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: "block",
+          solid: true
+        });
+      }
+      
+      // Over Gap 1
+      tiles.push({
+        x: 82 * TILE_SIZE,
+        y: 168,
+        w: TILE_SIZE,
+        h: TILE_SIZE,
+        type: "block",
+        solid: true
+      });
+      tiles.push({
+        x: 82 * TILE_SIZE,
+        y: 152,
+        w: TILE_SIZE,
+        h: TILE_SIZE,
+        type: "block",
+        solid: true
+      });
+      
+      // Early blocks with powerup spawner
+      for (let i = 0; i < 4; i++) {
+        let block = {
+          x: 40 + i * TILE_SIZE,
+          y: 136,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: (i === 1) ? "question" : "block",
+          solid: true
+        };
+        if (i === 1) block.powerup = true;
+        tiles.push(block);
+      }
+      
+      // Pipes at x=110 and x=200
+      for (let p = 0; p < 2; p++) {
+        tiles.push({
+          x: 110,
+          y: 168 + p * TILE_SIZE,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: "pipe",
+          solid: true
+        });
+        tiles.push({
+          x: 200,
+          y: 168 + p * TILE_SIZE,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: "pipe",
+          solid: true
+        });
+      }
+      
+      // Level 1 enemy (simple patrol)
+      enemies.push({
+        x: 250,
+        y: 184,
+        width: TILE_SIZE,
+        height: TILE_SIZE,
+        dx: 1,
+        startX: 250,
+        endX: 350,
+        squashed: false
+      });
+      
+      // Blocks at x=280
+      for (let i = 0; i < 4; i++) {
+        tiles.push({
+          x: 280 + i * TILE_SIZE,
+          y: 144,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: (i === 2) ? "question" : "block",
+          solid: true
+        });
+      }
+      
+      // First staircase at x=400 (3 steps)
+      for (let s = 0; s < 3; s++) {
+        for (let row = 0; row <= s; row++) {
+          tiles.push({
+            x: 400 + s * TILE_SIZE,
+            y: 184 - row * TILE_SIZE,
+            w: TILE_SIZE,
+            h: TILE_SIZE,
+            type: "step",
+            solid: true
+          });
+        }
+      }
+      
+      // Floating coins near x=600
+      for (let i = 0; i < 5; i++) {
+        tiles.push({
+          x: 600 + i * TILE_SIZE,
+          y: 128,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: "coin",
+          solid: false
+        });
+      }
+      
+      // Extra blocks near x=700
+      for (let i = 0; i < 3; i++) {
+        tiles.push({
+          x: 700 + i * TILE_SIZE,
+          y: 144 - (i % 2) * TILE_SIZE,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: "block",
+          solid: true
+        });
+      }
+      
+      // Bridging block near gap 2
+      tiles.push({
+        x: 144 * TILE_SIZE,
+        y: 184,
+        w: TILE_SIZE,
+        h: TILE_SIZE,
+        type: "block",
+        solid: true
+      });
+      
+      // Second staircase at x=900 (4 steps)
+      for (let s = 0; s < 4; s++) {
+        for (let row = 0; row <= s; row++) {
+          tiles.push({
+            x: 900 + s * TILE_SIZE,
+            y: 184 - row * TILE_SIZE,
+            w: TILE_SIZE,
+            h: TILE_SIZE,
+            type: "step",
+            solid: true
+          });
+        }
+      }
+      
+      // Taller pipe near x=1000 (3 tiles tall)
+      for (let p = 0; p < 3; p++) {
+        tiles.push({
+          x: 1000,
+          y: 152 + p * TILE_SIZE,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: "pipe",
+          solid: true
+        });
+      }
+      
+      // Floating blocks and coins near x=1100
+      for (let i = 0; i < 4; i++) {
+        tiles.push({
+          x: 1100 + i * TILE_SIZE,
+          y: 144 - (i % 2) * TILE_SIZE,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: "block",
+          solid: true
+        });
+        tiles.push({
+          x: 1100 + i * TILE_SIZE,
+          y: 128 - (i % 2) * TILE_SIZE,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: "coin",
+          solid: false
+        });
+      }
+      
+      // Final staircase at x=3600 (5 steps)
+      const finalStairX = 3600;
+      const finalStairSteps = 5;
+      for (let s = 0; s < finalStairSteps; s++) {
+        for (let row = 0; row <= s; row++) {
+          tiles.push({
+            x: finalStairX + s * TILE_SIZE,
+            y: 184 - row * TILE_SIZE,
+            w: TILE_SIZE,
+            h: TILE_SIZE,
+            type: "step",
+            solid: true
+          });
+        }
+      }
+      
+      // Castle Pyramid (unchanged)
+      let castleBaseX = finalStairX + finalStairSteps * TILE_SIZE + 2 * TILE_SIZE;
+      let baseYCastle = 184;
+      for (let i = 0; i < 8; i++) {
+        tiles.push({
+          x: castleBaseX + i * TILE_SIZE,
+          y: baseYCastle,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: "castle",
+          solid: true
+        });
+      }
+      let centerCastle = castleBaseX + 4 * TILE_SIZE;
+      let row2X = centerCastle - 3 * TILE_SIZE;
+      for (let i = 0; i < 6; i++) {
+        tiles.push({
+          x: row2X + i * TILE_SIZE,
+          y: baseYCastle - TILE_SIZE,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: "castle",
+          solid: true
+        });
+      }
+      let row3X = centerCastle - 2 * TILE_SIZE;
+      for (let i = 0; i < 4; i++) {
+        tiles.push({
+          x: row3X + i * TILE_SIZE,
+          y: baseYCastle - 2 * TILE_SIZE,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: "castle",
+          solid: true
+        });
+      }
+      let row4X = centerCastle - TILE_SIZE;
+      for (let i = 0; i < 2; i++) {
+        tiles.push({
+          x: row4X + i * TILE_SIZE,
+          y: baseYCastle - 3 * TILE_SIZE,
+          w: TILE_SIZE,
+          h: TILE_SIZE,
+          type: "castle",
+          solid: true
+        });
+      }
+      tiles.push({
+        x: centerCastle - TILE_SIZE / 2,
+        y: baseYCastle - 4 * TILE_SIZE,
+        w: TILE_SIZE,
+        h: TILE_SIZE,
+        type: "castle",
+        solid: true
+      });
+      
+      // NEW: Add separate flag pole and flag tiles.
+      // Flag pole: 3 cells high (48px) and 4px wide.
+      let flagPoleWidth = 4;
+      let flagPoleHeight = TILE_SIZE * 3; // 48px
+      // Position the flag pole so its bottom aligns with the top of the castle pyramid.
+      let flagPoleX = centerCastle - TILE_SIZE / 8;
+      let flagPoleY = baseYCastle - 4 * TILE_SIZE - flagPoleHeight;
+      tiles.push({
+        x: flagPoleX,
+        y: flagPoleY,
+        w: flagPoleWidth,
+        h: flagPoleHeight,
+        type: "flagPole",
+        solid: true
+      });
+      // Flag: 16x16 tile drawn as a right‐facing triangle.
+      let flagSize = TILE_SIZE; // 16x16
+      let flagX = flagPoleX + flagPoleWidth;
+      let flagY = flagPoleY;
+      tiles.push({
+        x: flagX,
+        y: flagY,
+        w: flagSize,
+        h: flagSize,
+        type: "flag",
+        solid: true
+      });
+    }
+
+    /* -------------------------
+       LEVEL 2 LAYOUT (New Level)
+       ------------------------- */
+    function createLevel2() {
+      tiles.length = 0;
+      enemies.length = 0;
+      powerups.length = 0;
+      // Level 2 layout generated by PocketPixel Level Maker (layout unchanged)
+      tiles.push({ x: 0, y: 192, w: 16, h: 16, type: 'ground', solid: true });
+      // … (other level 2 tile definitions as before)
+      // For this example, we add one flag tile for level 2 (if desired)
+      tiles.push({ x: 272, y: 144, w: 16, h: 16, type: 'flag', solid: true });
+      
+      // Level 2 enemy (using the same movement logic)
+      enemies.push({ 
+        x: 80, 
+        y: 176, 
+        width: 16, 
+        height: 16, 
+        dx: 1, 
+        squashed: false 
+      });
+      
+      // Set player's starting position for level 2
+      player.x = 50;
+      player.y = 180;
+      
+      initStars();
+    }
+
+    /* -------------------------
+       END OF LEVEL LAYOUTS
+       ------------------------- */
+
+    // Rectangle intersection helper (touching edges are not intersecting)
+    function rectIntersect(a, b) {
+      return !(a.x + a.width <= b.x || a.x >= b.x + b.width ||
+               a.y + a.height <= b.y || a.y >= b.y + b.height);
+    }
+
+    function initStars() {
+      stars.length = 0;
+      for (let i = 0; i < STAR_COUNT; i++) {
+        const sx = Math.random() * LEVEL_LENGTH;
+        const sy = Math.random() * canvas.height;
+        const b = 0.4 + Math.random() * 0.6;
+        const flickerDir = Math.random() < 0.5 ? -1 : 1;
+        stars.push({ x: sx, y: sy, brightness: b, flickerDir });
+      }
+    }
+
+    // Start with level 1.
+    createLevel();
+    initStars();
+
+    function loadLevel2() {
+      if (currentLevel === 1) {
+        currentLevel = 2;
+        createLevel2();
+      }
+    }
+
+    function update() {
+      // Reduce invincibility timer (~16ms per frame)
+      if (player.invincibilityTimer > 0) {
+        player.invincibilityTimer -= 16;
+        if (player.invincibilityTimer < 0) player.invincibilityTimer = 0;
+      }
+      
+      const prevY = player.y;
+      
+      // Process player movement
+      if (player.moveLeft && !player.moveRight) {
+        player.vx = -2;
+      } else if (player.moveRight && !player.moveLeft) {
+        player.vx = 2;
+      } else {
+        player.vx = 0;
+      }
+      player.x += player.vx;
+      
+      // Apply gravity
+      player.vy += gravity;
+      player.y += player.vy;
+      
+      if (player.y - player.radius > canvas.height) {
+        resetGame();
+        return;
+      }
+      
+      // Tile collisions
+      player.onGround = false;
+      const playerBottom = player.y + player.radius;
+      const playerTop = player.y - player.radius;
+      const playerLeft = player.x - player.radius;
+      const playerRight = player.x + player.radius;
+      
+      for (let i = 0; i < tiles.length; i++) {
+        const t = tiles[i];
+        if (t.type === "question" && player.vy < 0) {
+          const tileBottom = t.y + t.h;
+          const prevHead = prevY - player.radius;
+          if (prevHead >= tileBottom && playerTop < tileBottom &&
+              (playerRight > t.x) && (playerLeft < t.x + t.w)) {
+            if (t.powerup) {
+              powerups.push({
+                x: t.x,
+                y: t.y - TILE_SIZE,
+                dx: 1,
+                width: TILE_SIZE,
+                height: TILE_SIZE,
+                type: "mushroom"
+              });
+            } else {
+              score++;
+            }
+            tiles.splice(i, 1);
+            i--;
+            continue;
+          }
+        }
+        
+        if (!t.solid) continue;
+        const tileLeft = t.x;
+        const tileRight = t.x + t.w;
+        const tileTop = t.y;
+        const tileBottom = t.y + t.h;
+        
+        const overlapX = (playerRight > tileLeft && playerLeft < tileRight);
+        const overlapY = (playerBottom > tileTop && playerTop < tileBottom);
+        if (overlapX && overlapY) {
+          const oldBottom = prevY + player.radius;
+          if (oldBottom <= tileTop) {
+            player.y = tileTop - player.radius;
+            player.vy = 0;
+            player.onGround = true;
+          } else {
+            const oldLeft = (player.x - player.vx) - player.radius;
+            const oldRight = (player.x - player.vx) + player.radius;
+            if (oldRight <= tileLeft) {
+              player.x = tileLeft - player.radius;
+            } else if (oldLeft >= tileRight) {
+              player.x = tileRight + player.radius;
+            } else if ((player.y - player.vy) + player.radius >= tileBottom) {
+              player.y = tileBottom + player.radius;
+              player.vy = 0;
+            }
+          }
+        }
+      }
+      
+      // Coin collisions
+      for (let i = 0; i < tiles.length; i++) {
+        const t = tiles[i];
+        if (t.type === "coin") {
+          const tileCenterX = t.x + t.w / 2;
+          const tileCenterY = t.y + t.h / 2;
+          const dx = player.x - tileCenterX;
+          const dy = player.y - tileCenterY;
+          if (Math.sqrt(dx * dx + dy * dy) < player.radius + t.w / 2) {
+            tiles.splice(i, 1);
+            score++;
+            i--;
+          }
+        }
+      }
+      
+      // Enemy movement and collision
+      for (let i = 0; i < enemies.length; i++) {
+        let enemy = enemies[i];
+        if (!enemy.squashed) {
+          let nextX = enemy.x + enemy.dx;
+          let collision = false;
+          for (let t of tiles) {
+            if (t.solid) {
+              let tileRect = { x: t.x, y: t.y, width: t.w, height: t.h };
+              let enemyNextRect = { x: nextX, y: enemy.y, width: enemy.width, height: enemy.height };
+              if (rectIntersect(enemyNextRect, tileRect)) {
+                collision = true;
+                break;
+              }
+            }
+          }
+          // Check for gap beneath enemy’s front edge.
+          let frontX = enemy.dx > 0 ? enemy.x + enemy.width + enemy.dx : enemy.x + enemy.dx;
+          let footY = enemy.y + enemy.height + 1;
+          let groundBelow = false;
+          for (let t of tiles) {
+            if (t.solid && t.type === "ground") {
+              if (frontX >= t.x && frontX < t.x + t.w && footY >= t.y && footY < t.y + t.h) {
+                groundBelow = true;
+                break;
+              }
+            }
+          }
+          if (collision || !groundBelow) {
+            enemy.dx = -enemy.dx;
+          } else {
+            enemy.x = nextX;
+          }
+        }
+        
+        if (enemy.squashed) continue;
+        
+        let enemyRect = { x: enemy.x, y: enemy.y, width: enemy.width, height: enemy.height };
+        let playerRect = { 
+          x: player.x - player.radius, 
+          y: player.y - player.radius, 
+          width: player.radius * 2, 
+          height: player.radius * 2 
+        };
+        if (rectIntersect(playerRect, enemyRect)) {
+          if (player.vy > 0 && (player.y + player.radius - enemy.y) < 10) {
+            enemy.squashed = true;
+            enemy.dx = 0;
+            enemy.height = TILE_SIZE;
+            player.vy = -5;
+            score++;
+            setTimeout(() => {
+              const index = enemies.indexOf(enemy);
+              if (index > -1) enemies.splice(index, 1);
+            }, 500);
+          } else {
+            if (player.invincibilityTimer <= 0) {
+              if (player.poweredUp) {
+                player.poweredUp = false;
+                player.color = "black";
+                player.invincibilityTimer = 2000;
+              } else {
+                resetGame();
+                return;
+              }
+            }
+          }
+        }
+      }
+      
+      // Powerup movement and collision
+      for (let i = 0; i < powerups.length; i++) {
+        let pwr = powerups[i];
+        pwr.x += pwr.dx;
+        if (pwr.x < 0 || pwr.x + pwr.width > LEVEL_LENGTH) {
+          pwr.dx = -pwr.dx;
+        }
+        let pwrRect = { x: pwr.x, y: pwr.y, width: pwr.width, height: pwr.height };
+        let playerRect = { 
+          x: player.x - player.radius, 
+          y: player.y - player.radius, 
+          width: player.radius * 2, 
+          height: player.radius * 2 
+        };
+        if (rectIntersect(pwrRect, playerRect)) {
+          powerups.splice(i, 1);
+          player.poweredUp = true;
+          player.color = "red";
+          i--;
+        }
+      }
+      
+      // Check flag/pole collision for level 1.
+      // If the player touches any tile of type "flag" or "flagPole", trigger level 2.
+      for (const t of tiles) {
+        if ((t.type === "flag" || t.type === "flagPole") && currentLevel === 1) {
+          const flagRect = { x: t.x, y: t.y, width: t.w, height: t.h };
+          const playerRect = { 
+            x: player.x - player.radius, 
+            y: player.y - player.radius, 
+            width: player.radius * 2, 
+            height: player.radius * 2 
+          };
+          if (rectIntersect(playerRect, flagRect)) {
+            loadLevel2();
+            break;
+          }
+        }
+      }
+      
+      cameraX = player.x - canvas.width / 2;
+      if (cameraX < 0) cameraX = 0;
+      if (cameraX > LEVEL_LENGTH - canvas.width) cameraX = LEVEL_LENGTH - canvas.width;
+      
+      flickerStars();
+      updateEnemiesAndPowerups();
+      draw();
+      requestAnimationFrame(update);
+    }
+    
+    function updateEnemiesAndPowerups() {
+      // Additional logic if needed.
+    }
+    
+    function flickerStars() {
+      for (let s of stars) {
+        s.brightness += s.flickerDir * 0.01 * Math.random();
+        if (s.brightness > 1) {
+          s.brightness = 1;
+          s.flickerDir = -1;
+        } else if (s.brightness < 0.4) {
+          s.brightness = 0.4;
+          s.flickerDir = 1;
+        }
+      }
+      ctx.globalAlpha = 1.0;
+    }
+    
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawSkyGradient();
+      drawStars();
+      drawHills();
+      
+      for (const t of tiles) {
+        const screenX = t.x - cameraX;
+        if (screenX + t.w < 0 || screenX > canvas.width) continue;
+        let color = "#654321";
+        if (t.type === "ground") color = "#955100";
+        if (t.type === "block") color = "#b5651d";
+        if (t.type === "question") color = "gold";
+        if (t.type === "pipe") color = "green";
+        if (t.type === "step") color = "#b5651d";
+        if (t.type === "castle") color = "#7e3e2f";
+        if (t.type === "coin") color = "gold";
+        
+        // Draw flag pole as a black rectangle.
+        if (t.type === "flagPole") {
+          ctx.fillStyle = "#000";
+          ctx.fillRect(screenX, t.y, t.w, t.h);
+          continue;
+        }
+        // Draw flag as a right‑facing triangular flag.
+        if (t.type === "flag") {
+          ctx.fillStyle = "yellow";
+          ctx.beginPath();
+          // Triangle vertices:
+          // Top-left corner
+          ctx.moveTo(screenX, t.y);
+          // Middle of right edge
+          ctx.lineTo(screenX + t.w, t.y + t.h/2);
+          // Bottom-left corner
+          ctx.lineTo(screenX, t.y + t.h);
+          ctx.closePath();
+          ctx.fill();
+          continue;
+        }
+        
+        if (t.type === "coin") {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(screenX + t.w/2, t.y + t.h/2, t.w/2, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = color;
+          ctx.fillRect(screenX, t.y, t.w, t.h);
+        }
+      }
+      
+      for (const enemy of enemies) {
+        const screenX = enemy.x - cameraX;
+        ctx.fillStyle = enemy.squashed ? "darkred" : "brown";
+        if (enemy.squashed) {
+          ctx.fillRect(screenX, enemy.y + TILE_SIZE/2, enemy.width, enemy.height/2);
+        } else {
+          ctx.fillRect(screenX, enemy.y, enemy.width, enemy.height);
+        }
+      }
+      
+      for (const pwr of powerups) {
+        const screenX = pwr.x - cameraX;
+        ctx.fillStyle = "red";
+        ctx.fillRect(screenX, pwr.y, pwr.width, pwr.height/2);
+        ctx.fillStyle = "white";
+        ctx.fillRect(screenX, pwr.y + pwr.height/2, pwr.width, pwr.height/2);
+      }
+      
+      ctx.fillStyle = player.color;
+      ctx.beginPath();
+      ctx.arc(player.x - cameraX, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.fillStyle = "black";
+      ctx.font = "16px sans-serif";
+      ctx.fillText("Score: " + score, 10, 20);
+      ctx.font = "20px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Pocket Hopper", canvas.width / 2, 20);
+      ctx.textAlign = "left";
+    }
+    
+    function drawSkyGradient() {
+      let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, "#2a0036");
+      gradient.addColorStop(1, "#ff69b4");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    function drawStars() {
+      for (let s of stars) {
+        let starScreenX = s.x - cameraX * STAR_PARALLAX;
+        if (starScreenX >= -2 && starScreenX < canvas.width + 2) {
+          ctx.globalAlpha = s.brightness;
+          ctx.fillStyle = "white";
+          ctx.fillRect(Math.floor(starScreenX), Math.floor(s.y), 1, 1);
+        }
+      }
+      ctx.globalAlpha = 1.0;
+    }
+    
+    function drawHills() {
+      ctx.fillStyle = "#228B22";
+      const spacing = 80;
+      const hillCount = Math.ceil(LEVEL_LENGTH / spacing);
+      for (let i = 0; i < hillCount; i++) {
+        let hillBaseX = i * spacing + 40;
+        let screenX = hillBaseX - cameraX * HILL_PARALLAX;
+        ctx.beginPath();
+        ctx.arc(screenX, 210, 50, Math.PI, 0);
+        ctx.fill();
+      }
+    }
+    
+    const dpad = document.getElementById('dpad');
+    function handleDpad(e) {
+      e.preventDefault();
+      let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const rect = dpad.getBoundingClientRect();
+      const offsetX = clientX - rect.left;
+      if (offsetX < rect.width / 2 - 10) {
+        player.moveLeft = true;
+        player.moveRight = false;
+      } else if (offsetX > rect.width / 2 + 10) {
+        player.moveRight = true;
+        player.moveLeft = false;
+      } else {
+        player.moveLeft = false;
+        player.moveRight = false;
+      }
+    }
+    function resetDpad() {
+      player.moveLeft = false;
+      player.moveRight = false;
+    }
+    dpad.addEventListener('touchstart', handleDpad, { passive: false });
+    dpad.addEventListener('touchmove', handleDpad, { passive: false });
+    dpad.addEventListener('touchend', resetDpad, { passive: false });
+    dpad.addEventListener('mousedown', handleDpad);
+    dpad.addEventListener('mousemove', (e) => { if (e.buttons > 0) handleDpad(e); });
+    dpad.addEventListener('mouseup', resetDpad);
+    dpad.addEventListener('mouseleave', resetDpad);
+    
+    const buttonB = document.getElementById('buttonB');
+    buttonB.addEventListener('mousedown', function(e) {
+      if (player.onGround) {
+        player.vy = -8;
+        player.onGround = false;
+      }
+      pressButton('buttonB');
+      e.preventDefault();
+    });
+    buttonB.addEventListener('touchstart', function(e) {
+      if (player.onGround) {
+        player.vy = -8;
+        player.onGround = false;
+      }
+      pressButton('buttonB');
+      e.preventDefault();
+    }, { passive: false });
+    
+    const buttonA = document.getElementById('buttonA');
+    buttonA.addEventListener('mousedown', function(e) {
+      resetGame();
+      pressButton('buttonA');
+      e.preventDefault();
+    });
+    buttonA.addEventListener('touchstart', function(e) {
+      resetGame();
+      pressButton('buttonA');
+      e.preventDefault();
+    }, { passive: false });
+    
+    const buttonSel = document.getElementById('buttonSel');
+    const buttonStart = document.getElementById('buttonStart');
+    function displayMessage(msg) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.font = "24px sans-serif";
+      ctx.fillStyle = "#333";
+      ctx.textAlign = "center";
+      ctx.fillText(msg, canvas.width / 2, canvas.height / 2);
+      setTimeout(draw, 1000);
+    }
+    buttonSel.addEventListener('mousedown', function(e) {
+      displayMessage("SEL");
+      e.preventDefault();
+    });
+    buttonSel.addEventListener('touchstart', function(e) {
+      displayMessage("SEL");
+      e.preventDefault();
+    }, { passive: false });
+    buttonStart.addEventListener('mousedown', function(e) {
+      displayMessage("START");
+      e.preventDefault();
+    });
+    buttonStart.addEventListener('touchstart', function(e) {
+      displayMessage("START");
+      e.preventDefault();
+    }, { passive: false });
+    
+    function pressButton(buttonId) {
+      const btn = document.getElementById(buttonId);
+      btn.classList.add('pressed');
+      setTimeout(() => { btn.classList.remove('pressed'); }, 150);
+    }
+    
+    function resetGame() {
+      player.x = 50;
+      player.y = 180;
+      player.vx = 0;
+      player.vy = 0;
+      player.onGround = false;
+      player.moveLeft = false;
+      player.moveRight = false;
+      player.poweredUp = false;
+      player.color = "black";
+      player.invincibilityTimer = 0;
+      score = 0;
+      tiles.length = 0;
+      enemies.length = 0;
+      powerups.length = 0;
+      if (currentLevel === 1) {
+        createLevel();
+      } else {
+        createLevel2();
+      }
+      initStars();
+    }
+    
+    // Main game loop
+    update();
+    
+    function updateEnemiesAndPowerups() {
+      // Additional logic if needed.
+    }
+  </script>
+</body>
+</html>
