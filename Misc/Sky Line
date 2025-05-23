@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D City Generator</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #222; }
+    canvas { display: block; }
+    #zoomControl {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      z-index: 100;
+    }
+    button {
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: 1px solid white;
+      padding: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      border-radius: 4px;
+    }
+    button:hover { background: rgba(255, 255, 255, 0.2); }
+    span { color: white; font-size: 14px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <!-- Zoom Controls -->
+  <div id="zoomControl">
+    <button id="zoomIn">Zoom In</button>
+    <button id="zoomOut">Zoom Out</button>
+    <span id="zoomDisplay">Zoom: 50</span>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/simplex-noise@2.4.0/simplex-noise.min.js"></script>
+
+  <script>
+    // --- Global Variables & Scene Setup ---
+    let scene, camera, renderer;
+    let buildings = [];
+    const citySize = 10;  // Number of buildings along X and Z axes
+    const buildingWidth = 4;  // Increased to make more space for roads
+    const buildingDepth = 4;  // Increased to make more space for roads
+    const maxBuildingHeight = 20;
+    const sidewalkWidth = 3; // More room for sidewalks
+    let zoomLevel = 50;
+    
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 50, 70);
+    camera.lookAt(0, 0, 0);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // --- Lighting ---
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(50, 50, 50);
+    scene.add(directionalLight);
+
+    // --- Ground Setup ---
+    function createGround() {
+      const groundGeometry = new THREE.PlaneGeometry(citySize * (buildingWidth + sidewalkWidth) * 2, citySize * (buildingDepth + sidewalkWidth) * 2);
+      const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x4E5B60, side: THREE.DoubleSide }); // Ground color
+      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+      ground.rotation.x = -Math.PI / 2; // Flat on the ground
+      ground.position.set(0, 0, 0);
+      scene.add(ground);
+    }
+
+    createGround();  // Create the ground
+
+    // --- Generate City Grid (Buildings and Streets) ---
+    function generateCity() {
+      for (let x = -citySize; x < citySize; x++) {
+        for (let z = -citySize; z < citySize; z++) {
+          if (Math.random() < 0.8) { // Randomly place buildings
+            const height = Math.random() * maxBuildingHeight;
+            const building = createBuilding(x, z, height);
+            scene.add(building);
+            buildings.push(building);
+          }
+          createSidewalk(x, z, sidewalkWidth); // Create sidewalk blocks
+        }
+      }
+    }
+
+    // --- Create a Building with Random Shapes ---
+    function createBuilding(x, z, height) {
+      const width = buildingWidth + Math.random() * 2;  // Vary the width
+      const depth = buildingDepth + Math.random() * 2;  // Vary the depth
+      const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
+
+      // Load texture and apply it to walls
+      const texture = new THREE.TextureLoader().load('https://files.catbox.moe/fhiztj.jpeg');
+      const buildingMaterial = new THREE.MeshStandardMaterial({ map: texture });
+      
+      const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+      building.position.set(x * (buildingWidth + sidewalkWidth), height / 2, z * (buildingDepth + sidewalkWidth));
+      building.castShadow = true;
+      building.receiveShadow = true;
+
+      // Set top of the building to white
+      const topGeometry = new THREE.BoxGeometry(width, 1, depth);
+      const topMaterial = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
+      const top = new THREE.Mesh(topGeometry, topMaterial);
+      top.position.set(x * (buildingWidth + sidewalkWidth), height + 0.5, z * (buildingDepth + sidewalkWidth));
+      scene.add(top);
+
+      return building;
+    }
+
+    // --- Create Sidewalk between Buildings ---
+    function createSidewalk(x, z, width) {
+      const sidewalkGeometry = new THREE.PlaneGeometry(width, width);
+      const sidewalkMaterial = new THREE.MeshBasicMaterial({ color: 0x777777, side: THREE.DoubleSide });
+      const sidewalk = new THREE.Mesh(sidewalkGeometry, sidewalkMaterial);
+      sidewalk.rotation.x = -Math.PI / 2;
+      sidewalk.position.set(x * (buildingWidth + sidewalkWidth), 0, z * (buildingDepth + sidewalkWidth));
+      sidewalk.receiveShadow = true;
+      scene.add(sidewalk);
+    }
+
+    // --- Controls for Rotation (Mouse & Touch) ---
+    let isDragging = false;
+    let previousMousePos = { x: 0, y: 0 };
+    const rotationSpeed = 0.005;
+
+    document.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      previousMousePos.x = e.clientX;
+      previousMousePos.y = e.clientY;
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      let deltaX = e.clientX - previousMousePos.x;
+      let deltaY = e.clientY - previousMousePos.y;
+      previousMousePos.x = e.clientX;
+      previousMousePos.y = e.clientY;
+      scene.rotation.y += deltaX * rotationSpeed;
+      scene.rotation.x += deltaY * rotationSpeed * 0.5;
+    });
+
+    document.addEventListener('mouseup', () => { isDragging = false; });
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        previousMousePos.x = e.touches[0].clientX;
+        previousMousePos.y = e.touches[0].clientY;
+      }
+    });
+
+    document.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 1) {
+        let deltaX = e.touches[0].clientX - previousMousePos.x;
+        let deltaY = e.touches[0].clientY - previousMousePos.y;
+        previousMousePos.x = e.touches[0].clientX;
+        previousMousePos.y = e.touches[0].clientY;
+        scene.rotation.y += deltaX * rotationSpeed;
+        scene.rotation.x += deltaY * rotationSpeed * 0.5;
+        e.preventDefault();
+      }
+    });
+
+    // --- Zoom Control via On-screen Buttons ---
+    function updateCamera() {
+      camera.position.set(0, zoomLevel, zoomLevel);
+      camera.lookAt(0, 0, 0);
+    }
+
+    updateCamera();
+    document.getElementById("zoomIn").addEventListener("click", () => {
+      zoomLevel = Math.max(20, zoomLevel - 2);
+      updateCamera();
+      document.getElementById("zoomDisplay").textContent = "Zoom: " + zoomLevel;
+    });
+
+    document.getElementById("zoomOut").addEventListener("click", () => {
+      zoomLevel = Math.min(80, zoomLevel + 2);
+      updateCamera();
+      document.getElementById("zoomDisplay").textContent = "Zoom: " + zoomLevel;
+    });
+
+    // --- Animation Loop ---
+    function animate() {
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    // --- Resize Handling ---
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // --- Generate the City ---
+    generateCity();
+  </script>
+
+</body>
+</html>

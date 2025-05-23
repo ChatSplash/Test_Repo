@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Three.js Particle Playground</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 10px;
+      z-index: 100;
+    }
+    #controls label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    #controls input[type="range"] {
+      width: 200px;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <label for="particleSize">Particle Size:</label>
+    <input type="range" id="particleSize" min="0.01" max="0.5" step="0.01" value="0.1">
+
+    <label for="repelStrength">Repel Strength:</label>
+    <input type="range" id="repelStrength" min="0" max="10" step="0.1" value="5">
+
+    <label for="rotationSpeed">Rotation Speed:</label>
+    <input type="range" id="rotationSpeed" min="0" max="0.01" step="0.0001" value="0.001">
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // Scene, Camera, Renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Particle System
+    const particleGeometry = new THREE.BufferGeometry();
+    const particles = 10000;
+    const positions = new Float32Array(particles * 3);
+    const colors = new Float32Array(particles * 3);
+    const originalColors = []; // Store original colors
+
+    for (let i = 0; i < particles; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 20;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 20;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
+
+      colors[i * 3] = Math.random();
+      colors[i * 3 + 1] = Math.random();
+      colors[i * 3 + 2] = Math.random();
+
+      originalColors.push(new THREE.Color(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2])); // Store original color
+    }
+
+    particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const particleMaterial = new THREE.PointsMaterial({
+      size: 0.1,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      transparent: true
+    });
+
+    const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+    scene.add(particleSystem);
+
+    // Camera Position
+    camera.position.z = 10;
+
+    // Touch Interaction
+    let touchX = null;
+    let touchY = null;
+    let previousTouchX = null;
+    let previousTouchY = null;
+    let touchPressure = 0;
+
+    renderer.domElement.addEventListener('touchstart', (event) => {
+      event.preventDefault();
+      const touch = event.touches[0];
+      touchX = touch.clientX;
+      touchY = touch.clientY;
+      previousTouchX = touchX;
+      previousTouchY = touchY;
+      touchPressure = touch.force; // Get touch pressure
+      pulseParticles(touchPressure);
+    }, false);
+
+    renderer.domElement.addEventListener('touchmove', (event) => {
+      event.preventDefault();
+      const touch = event.touches[0];
+      touchX = touch.clientX;
+      touchY = touch.clientY;
+      touchPressure = touch.force; // Get touch pressure
+    }, false);
+
+    renderer.domElement.addEventListener('touchend', (event) => {
+      event.preventDefault();
+      touchX = null;
+      touchY = null;
+      previousTouchX = null;
+      previousTouchY = null;
+      touchPressure = 0;
+      resetParticleColors(); // Reset colors when touch ends
+    }, false);
+
+    function repelParticles(x, y, prevX, prevY) {
+      const positions = particleGeometry.attributes.position.array;
+      const vector = new THREE.Vector3();
+      const repelStrength = parseFloat(document.getElementById('repelStrength').value);
+      for (let i = 0; i < particles; i++) {
+        vector.set(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+
+        // Convert touch coordinates to normalized device coordinates (-1 to 1)
+        const normalizedX = (x / window.innerWidth) * 2 - 1;
+        const normalizedY = -(y / window.innerHeight) * 2 + 1;
+
+        // Project to 3D space
+        vector.project(camera);
+
+        let force = repelStrength / vector.distanceTo(new THREE.Vector3(normalizedX, normalizedY, 0)); // Adjust the force
+
+        const dx = vector.x - normalizedX;
+        const dy = vector.y - normalizedY;
+
+        positions[i * 3] += dx * force * 0.01;
+        positions[i * 3 + 1] += dy * force * 0.01;
+
+        //Sweep
+        if (prevX !== null && prevY !== null) {
+          const prevNormalizedX = (prevX / window.innerWidth) * 2 - 1;
+          const prevNormalizedY = -(prevY / window.innerHeight) * 2 + 1;
+
+          const sweepX = prevNormalizedX - normalizedX;
+          const sweepY = prevNormalizedY - normalizedY;
+
+          positions[i * 3] -= sweepX * 0.005;
+          positions[i * 3 + 1] -= sweepY * 0.005;
+        }
+      }
+      particleGeometry.attributes.position.needsUpdate = true;
+    }
+
+    function pulseParticles(pressure) {
+      const colors = particleGeometry.attributes.color.array;
+      for (let i = 0; i < particles; i++) {
+        colors[i * 3] = 1; // Gold color
+        colors[i * 3 + 1] = 0.843;
+        colors[i * 3 + 2] = 0;
+      }
+      particleGeometry.attributes.color.needsUpdate = true;
+    }
+
+    function resetParticleColors() {
+      const colors = particleGeometry.attributes.color.array;
+      for (let i = 0; i < particles; i++) {
+        colors[i * 3] = originalColors[i].r;
+        colors[i * 3 + 1] = originalColors[i].g;
+        colors[i * 3 + 2] = originalColors[i].b;
+      }
+      particleGeometry.attributes.color.needsUpdate = true;
+    }
+
+    // Animation Loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const rotationSpeed = parseFloat(document.getElementById('rotationSpeed').value);
+      particleSystem.rotation.x += rotationSpeed;
+      particleSystem.rotation.y += rotationSpeed * 2;
+
+      const particleSize = parseFloat(document.getElementById('particleSize').value);
+      particleMaterial.size = particleSize;
+
+      if (touchX !== null && touchY !== null) {
+        repelParticles(touchX, touchY, previousTouchX, previousTouchY);
+        previousTouchX = touchX;
+        previousTouchY = touchY;
+      }
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
