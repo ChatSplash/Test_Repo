@@ -4,344 +4,101 @@
   <meta charset="UTF-8">
   <title>Projects</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <!--
-    ======== STYLE SECTION ========
-    - All the CSS for colors, layout, and responsive design is here.
-    - You can tweak the colors or spacing as you like.
-  -->
   <link href="https://fonts.googleapis.com/css?family=Montserrat:600,400&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --primary: #4f8cff;
-      --background: #181f2a;
-      --card: #222b3a;
-      --accent: #18ffe6;
-      --text: #ffffff;
-      --fade: #a0aec0;
-      --shadow: 0 4px 14px rgba(0,0,0,0.15);
-    }
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      background: var(--background);
-      color: var(--text);
-      font-family: 'Montserrat', Arial, sans-serif;
-      min-height: 100vh;
-    }
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      padding: 0;
-      margin: 0;
-    }
-    header {
-      width: 100%;
-      background: linear-gradient(90deg, var(--primary), var(--accent));
-      padding: 2rem 0 1rem 0;
-      border-bottom-left-radius: 2em 1em;
-      border-bottom-right-radius: 2em 1em;
-      box-shadow: var(--shadow);
-      margin-bottom: 2rem;
-    }
-    h1 {
-      margin: 0;
-      padding: 0;
-      text-align: center;
-      font-size: 2.5rem;
-      letter-spacing: 2px;
-      font-weight: 800;
-      color: #fff;
-      text-shadow: 0 2px 16px #4449;
-    }
-    .container {
-      width: 96vw;
-      max-width: 480px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2rem;
-      margin-bottom: 2rem;
-    }
-    .folder {
-      width: 100%;
-      background: var(--card);
-      border-radius: 18px;
-      box-shadow: var(--shadow);
-      margin: 0 auto;
-      transition: transform 0.12s;
-      overflow: hidden;
-    }
-    .folder:hover {
-      transform: scale(1.015) translateY(-2px);
-      box-shadow: 0 6px 20px #0003;
-    }
-    .folder-header {
-      display: flex;
-      align-items: center;
-      cursor: pointer;
-      padding: 1.2rem 1.2rem 0.9rem 1.2rem;
-      user-select: none;
-      transition: background 0.14s;
-    }
-    .folder-header:hover {
-      background: #202a3a;
-    }
-    .folder-title {
-      font-size: 1.3rem;
-      color: var(--primary);
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-shadow: 0 1px 4px #0002;
-      flex: 1;
-    }
-    .chevron {
-      transition: transform 0.28s cubic-bezier(.4,2,.6,1);
-      width: 1.2em;
-      height: 1.2em;
-      margin-right: 0.5em;
-      fill: var(--accent);
-      flex-shrink: 0;
-    }
-    .folder.collapsed .chevron {
-      transform: rotate(-90deg);
-    }
-    .folder-content {
-      padding: 0 1.2rem 1.2rem 1.7rem;
-      max-height: 1000px;
-      opacity: 1;
-      transition: max-height 0.38s cubic-bezier(.4,2,.6,1), opacity 0.22s;
-      will-change: max-height, opacity;
-    }
-    .folder.collapsed .folder-content {
-      max-height: 0;
-      opacity: 0;
-      padding-bottom: 0;
-      overflow: hidden;
-    }
-    .scripts {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.6em;
-    }
-    .scripts li {
-      border-left: 4px solid var(--accent);
-      background: #192030c7;
-      border-radius: 6px;
-      margin: 0;
-      padding: 0.7em 0.8em;
-      font-size: 1.06rem;
-      display: flex;
-      align-items: center;
-      transition: background 0.12s;
-    }
-    .scripts li:hover {
-      background: #252f43;
-    }
-    .scripts a {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 600;
-      transition: color 0.16s;
-      font-family: inherit;
-      font-size: inherit;
-    }
-    .scripts a:active, .scripts a:focus {
-      color: var(--primary);
-    }
-    .badge {
-      margin-left: auto;
-      background: var(--primary);
-      color: #fff;
-      border-radius: 8px;
-      padding: 0.1em 0.7em;
-      font-size: 0.78em;
-      font-weight: 700;
-      letter-spacing: 1px;
-      opacity: 0.93;
-      box-shadow: 0 2px 8px #0002;
-      user-select: none;
-    }
-    @media (max-width: 600px) {
-      h1 {
-        font-size: 2rem;
-      }
-      .container {
-        max-width: 98vw;
-        gap: 1.3rem;
-      }
-      .folder-header {
-        padding: 0.8rem 0.5rem 0.7rem 0.7rem;
-      }
-      .folder-content {
-        padding: 0 0.5rem 0.7rem 1.2rem;
-      }
-      .folder-title {
-        font-size: 1.07rem;
-      }
-    }
-    @media (max-width: 400px) {
-      .container {
-        max-width: 100vw;
-        padding: 0 2px;
-      }
-      .folder-header {
-        padding-left: 0.3rem;
-        padding-right: 0.3rem;
-      }
-      .folder-content {
-        padding-left: 0.9rem;
-        padding-right: 0.2rem;
-      }
-    }
-    footer {
-      margin-top: auto;
-      text-align: center;
-      font-size: 0.96em;
-      color: var(--fade);
-      padding-bottom: 2em;
-      letter-spacing: 1px;
-    }
+    /* ...[same CSS as before]... */
+    :root { --primary: #4f8cff; --background: #181f2a; --card: #222b3a; --accent: #18ffe6; --text: #ffffff; --fade: #a0aec0; --shadow: 0 4px 14px rgba(0,0,0,0.15);}
+    html, body {height: 100%;margin: 0;padding: 0;background: var(--background);color: var(--text);font-family: 'Montserrat', Arial, sans-serif;min-height: 100vh;}
+    body {display: flex;flex-direction: column;align-items: center;min-height: 100vh;padding: 0;margin: 0;}
+    header {width: 100%;background: linear-gradient(90deg, var(--primary), var(--accent));padding: 2rem 0 1rem 0;border-bottom-left-radius: 2em 1em;border-bottom-right-radius: 2em 1em;box-shadow: var(--shadow);margin-bottom: 2rem;}
+    h1 {margin: 0;padding: 0;text-align: center;font-size: 2.5rem;letter-spacing: 2px;font-weight: 800;color: #fff;text-shadow: 0 2px 16px #4449;}
+    .container {width: 96vw;max-width: 480px;display: flex;flex-direction: column;align-items: center;gap: 2rem;margin-bottom: 2rem;}
+    .folder {width: 100%;background: var(--card);border-radius: 18px;box-shadow: var(--shadow);margin: 0 auto;transition: transform 0.12s;overflow: hidden;}
+    .folder:hover {transform: scale(1.015) translateY(-2px);box-shadow: 0 6px 20px #0003;}
+    .folder-header {display: flex;align-items: center;cursor: pointer;padding: 1.2rem 1.2rem 0.9rem 1.2rem;user-select: none;transition: background 0.14s;}
+    .folder-header:hover {background: #202a3a;}
+    .folder-title {font-size: 1.3rem;color: var(--primary);font-weight: 700;letter-spacing: 1px;text-shadow: 0 1px 4px #0002;flex: 1;}
+    .chevron {transition: transform 0.28s cubic-bezier(.4,2,.6,1);width: 1.2em;height: 1.2em;margin-right: 0.5em;fill: var(--accent);flex-shrink: 0;}
+    .folder.collapsed .chevron {transform: rotate(-90deg);}
+    .folder-content {padding: 0 1.2rem 1.2rem 1.7rem;max-height: 1000px;opacity: 1;transition: max-height 0.38s cubic-bezier(.4,2,.6,1), opacity 0.22s;will-change: max-height, opacity;}
+    .folder.collapsed .folder-content {max-height: 0;opacity: 0;padding-bottom: 0;overflow: hidden;}
+    .scripts {list-style: none;padding: 0;margin: 0;display: flex;flex-direction: column;gap: 0.6em;}
+    .scripts li {border-left: 4px solid var(--accent);background: #192030c7;border-radius: 6px;margin: 0;padding: 0.7em 0.8em;font-size: 1.06rem;display: flex;align-items: center;transition: background 0.12s;}
+    .scripts li:hover {background: #252f43;}
+    .scripts a {color: var(--accent);text-decoration: none;font-weight: 600;transition: color 0.16s;font-family: inherit;font-size: inherit;}
+    .scripts a:active, .scripts a:focus {color: var(--primary);}
+    .badge {margin-left: auto;background: var(--primary);color: #fff;border-radius: 8px;padding: 0.1em 0.7em;font-size: 0.78em;font-weight: 700;letter-spacing: 1px;opacity: 0.93;box-shadow: 0 2px 8px #0002;user-select: none;}
+    @media (max-width: 600px) {h1 {font-size: 2rem;}.container {max-width: 98vw;gap: 1.3rem;}.folder-header {padding: 0.8rem 0.5rem 0.7rem 0.7rem;}.folder-content {padding: 0 0.5rem 0.7rem 1.2rem;}.folder-title {font-size: 1.07rem;}}
+    @media (max-width: 400px) {.container {max-width: 100vw;padding: 0 2px;}.folder-header {padding-left: 0.3rem;padding-right: 0.3rem;}.folder-content {padding-left: 0.9rem;padding-right: 0.2rem;}}
+    footer {margin-top: auto;text-align: center;font-size: 0.96em;color: var(--fade);padding-bottom: 2em;letter-spacing: 1px;}
   </style>
 </head>
 <body>
-  <!--
-    ======== HEADER SECTION ========
-    - The top banner with the title.
-    - You can change the text in <h1> to whatever you want your site/project index to be called.
-  -->
   <header>
     <h1>Projects</h1>
   </header>
-  <!--
-    ======== MAIN CONTAINER ========
-    - Holds all the collapsible folders.
-    - Each folder is a <section> element.
-    - To add more folders, copy a whole <section class="folder">...</section> block and change names.
-  -->
   <main class="container">
-    <!--
-      ======== FOLDER 1 ========
-      - To rename, change "Folder 1" in the .folder-title div.
-      - To add/remove scripts, edit the <li> blocks.
-      - "collapsed" class means the folder starts closed.
-    -->
+    <!-- TOOLS -->
     <section class="folder collapsed">
-      <!--
-        ======== FOLDER HEADER ========
-        - Click this area (or press Enter/Space when focused) to open/close.
-        - Chevron arrow rotates when open.
-      -->
-      <div class="folder-header" tabindex="0" aria-expanded="false" aria-controls="folder1-content">
-        <!-- Arrow icon (chevron) -->
+      <div class="folder-header" tabindex="0" aria-expanded="false" aria-controls="tools-content">
         <svg class="chevron" viewBox="0 0 20 20"><polyline points="7 7 12.5 10.5 7 14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <div class="folder-title">Folder 1</div>
+        <div class="folder-title">Tools</div>
       </div>
-      <!--
-        ======== FOLDER CONTENT ========
-        - This area slides open/closed.
-        - Inside, list your links/scripts.
-        - To change or add links, edit/add <li> items.
-        - The badge shows file type.
-      -->
-      <div class="folder-content" id="folder1-content">
+      <div class="folder-content" id="tools-content">
         <ul class="scripts">
-          <li>
-            <a href="Folder1/F1_Script1" target="_blank">F1_Script1</a>
-            <span class="badge">.js</span>
-          </li>
-          <li>
-            <a href="Folder1/F1_Script2" target="_blank">F1_Script2</a>
-            <span class="badge">.js</span>
-          </li>
-          <li>
-            <a href="Folder1/F1_Script3" target="_blank">F1_Script3</a>
-            <span class="badge">.js</span>
-          </li>
+          <li><a href="Tools/Terrain Gen.html" target="_blank">Terrain Gen</a><span class="badge">.html</span></li>
+          <li><a href="Tools/Obj View.html" target="_blank">Obj View</a><span class="badge">.html</span></li>
+          <li><a href="Tools/Height Mapper.html" target="_blank">Height Mapper</a><span class="badge">.html</span></li>
         </ul>
       </div>
     </section>
-    <!-- ======== FOLDER 2 ======== -->
+    <!-- GAMES -->
     <section class="folder collapsed">
-      <div class="folder-header" tabindex="0" aria-expanded="false" aria-controls="folder2-content">
+      <div class="folder-header" tabindex="0" aria-expanded="false" aria-controls="games-content">
         <svg class="chevron" viewBox="0 0 20 20"><polyline points="7 7 12.5 10.5 7 14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <div class="folder-title">Folder 2</div>
+        <div class="folder-title">Games</div>
       </div>
-      <div class="folder-content" id="folder2-content">
+      <div class="folder-content" id="games-content">
         <ul class="scripts">
-          <li>
-            <a href="Folder2/F2_Script1" target="_blank">F2_Script1</a>
-            <span class="badge">.html</span>
-          </li>
-          <li>
-            <a href="Folder2/F2_Script2" target="_blank">F2_Script2</a>
-            <span class="badge">.html</span>
-          </li>
-          <li>
-            <a href="Folder2/F2_Script3" target="_blank">F2_Script3</a>
-            <span class="badge">.html</span>
-          </li>
+          <li><a href="Games/AiDoptimals.html" target="_blank">AiDoptimals</a><span class="badge">.html</span></li>
+          <li><a href="Games/Kart.html" target="_blank">Kart</a><span class="badge">.html</span></li>
+          <li><a href="Games/Pixel Pony Derby.html" target="_blank">Pixel Pony Derby</a><span class="badge">.html</span></li>
+          <li><a href="Games/Pocket Pixel - Hopper.html" target="_blank">Pocket Pixel - Hopper</a><span class="badge">.html</span></li>
+          <li><a href="Games/PocketPixel - Driver.html" target="_blank">PocketPixel - Driver</a><span class="badge">.html</span></li>
+          <li><a href="Games/Soda Slinger.html" target="_blank">Soda Slinger</a><span class="badge">.html</span></li>
         </ul>
       </div>
     </section>
-    <!-- ======== FOLDER 3 ======== -->
+    <!-- MISC -->
     <section class="folder collapsed">
-      <div class="folder-header" tabindex="0" aria-expanded="false" aria-controls="folder3-content">
+      <div class="folder-header" tabindex="0" aria-expanded="false" aria-controls="misc-content">
         <svg class="chevron" viewBox="0 0 20 20"><polyline points="7 7 12.5 10.5 7 14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <div class="folder-title">Folder 3</div>
+        <div class="folder-title">Misc</div>
       </div>
-      <div class="folder-content" id="folder3-content">
+      <div class="folder-content" id="misc-content">
         <ul class="scripts">
-          <li>
-            <a href="Folder3/F3_Script1" target="_blank">F3_Script1</a>
-            <span class="badge">.py</span>
-          </li>
-          <li>
-            <a href="Folder3/F3_Script2" target="_blank">F3_Script2</a>
-            <span class="badge">.py</span>
-          </li>
-          <li>
-            <a href="Folder3/F3_Script3" target="_blank">F3_Script3</a>
-            <span class="badge">.py</span>
-          </li>
+          <li><a href="Misc/Iso Block Gen.html" target="_blank">Iso Block Gen</a><span class="badge">.html</span></li>
+          <li><a href="Misc/Iso Perlin Gen.html" target="_blank">Iso Perlin Gen</a><span class="badge">.html</span></li>
+          <li><a href="Misc/Skyline.html" target="_blank">Skyline</a><span class="badge">.html</span></li>
+          <li><a href="Misc/Particle Field.html" target="_blank">Particle Field</a><span class="badge">.html</span></li>
+          <li><a href="Misc/Particle Push.html" target="_blank">Particle Push</a><span class="badge">.html</span></li>
+          <li><a href="Misc/Planet Field.html" target="_blank">Planet Field</a><span class="badge">.html</span></li>
         </ul>
       </div>
     </section>
   </main>
-  <!--
-    ======== FOOTER ========
-    - Can be edited or removed.
-    - Shows copyright.
-  -->
   <footer>
-    <div>
-      &copy; 2025 ChatSplash
-    </div>
+    <div>&copy; 2025 ChatSplash</div>
   </footer>
-  <!--
-    ======== JAVASCRIPT: Collapsible Folders ========
-    - Handles folder open/close when clicked or focused & Enter/Space is pressed.
-    - No libraries required; just plain JS.
-    - "collapsed" class controls the open/closed state.
-    - You don't need to edit this unless you want to change functionality.
-  -->
   <script>
-    // Find all folders and set up click/keyboard events for toggling
     document.querySelectorAll('.folder').forEach(function(folder) {
       var header = folder.querySelector('.folder-header');
       header.setAttribute('aria-expanded', "false");
-      folder.classList.add('collapsed'); // ensures all are closed by default
+      folder.classList.add('collapsed');
       header.addEventListener('click', function() {
         folder.classList.toggle('collapsed');
-        // For accessibility: update aria-expanded attribute
         header.setAttribute('aria-expanded', String(!folder.classList.contains('collapsed')));
       });
-      // Keyboard accessibility (toggle with Enter/Space when focused)
       header.addEventListener('keydown', function(e) {
         if (e.key === " " || e.key === "Enter") {
           e.preventDefault();
