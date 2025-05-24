@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3D Holofoil Card – Final Interactive Version</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; overflow:hidden; font-family:sans-serif; }
+    body { background: linear-gradient(to bottom right, #f0f7ff, #d0e4ff); }
+    canvas { position:absolute; top:0; left:0; display:block; }
+
+    #foilMenu {
+      position:absolute; top:10px; right:10px;
+      background:rgba(255,255,255,0.8); padding:8px; border-radius:8px;
+      font-size:14px; z-index:20;
+    }
+    .arrow-button {
+      position:absolute; bottom:100px;
+      width:40px; height:40px; background:rgba(255,255,255,0.8);
+      border:none; border-radius:50%; cursor:pointer; z-index:15;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 2px 4px rgba(0,0,0,0.3);
+    }
+    #leftArrow { left:calc(50% - 80px); }
+    #flipBtn { left:50%; transform:translateX(-50%); font-size:24px; color:#333; }
+    #rightArrow { right:calc(50% - 80px); }
+    #leftArrow svg, #rightArrow svg { width:24px; height:24px; fill:#333; }
+
+    .binder-button {
+      position:absolute; bottom:30px; left:50%; transform:translateX(-50%);
+      width:60px; height:60px;
+      background:radial-gradient(circle, #d3d3d3, #a9a9a9);
+      border:none; border-radius:50%; box-shadow:0 4px 6px rgba(0,0,0,0.2);
+      cursor:pointer; display:flex; align-items:center; justify-content:center;
+      transition:transform .2s ease, box-shadow .2s ease; z-index:10;
+    }
+    .binder-button:active {
+      transform:translateX(-50%) scale(.9);
+      box-shadow:0 2px 3px rgba(0,0,0,0.2);
+    }
+    .binder-button svg { width:30px; height:30px; fill:#696969; }
+
+    .binder-modal {
+      position:fixed; top:0; left:0; width:100vw; height:100vh;
+      background:rgba(0,0,0,0.5); display:none;
+      justify-content:center; align-items:center; z-index:20;
+    }
+    .binder-grid {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:4px;
+      width:90vw; max-height:90vh; overflow-y:auto;
+      background:#fff; padding:8px; border-radius:8px;
+    }
+    .binder-card {
+      width:100px; height:150px; border:1px solid #ccc;
+      background:#FFD700; display:flex; align-items:center;
+      justify-content:center; font-size:16px; font-weight:bold;
+    }
+    .binder-card img {
+      width:100%; height:100%; object-fit:contain;
+    }
+  </style>
+</head>
+<body>
+  <div id="foilMenu">
+    <select id="foilTypeSelect">
+      <option value="1">Type 1</option>
+      <option value="2">Type 2</option>
+      <option value="3">Type 3</option>
+      <option value="4">Type 4</option>
+      <option value="5" selected>Type 5</option>
+      <option value="6">Type 6</option>
+      <option value="7">Type 7</option>
+      <option value="8">Type 8</option>
+      <option value="9">Type 9</option>
+      <option value="10">Type 10</option>
+    </select>
+    <input type="range" id="foilIntensity" min="0" max="1" step="0.01" value="0.5">
+  </div>
+
+  <button id="leftArrow" class="arrow-button">
+    <svg viewBox="0 0 24 24"><path d="M14 6l-6 6 6 6V6z"/></svg>
+  </button>
+  <button id="flipBtn" class="arrow-button">•</button>
+  <button id="rightArrow" class="arrow-button">
+    <svg viewBox="0 0 24 24"><path d="M10 18l6-6-6-6v12z"/></svg>
+  </button>
+
+  <button class="binder-button" id="binderBtn">
+    <svg viewBox="0 0 64 64">
+      <rect x="12" y="20" width="40" height="24" rx="4" ry="4"></rect>
+      <rect x="20" y="28" width="12" height="12" rx="2" ry="2"></rect>
+    </svg>
+  </button>
+  <div class="binder-modal" id="binderModal">
+    <div class="binder-grid" id="binderGrid"></div>
+  </div>
+
+  <!-- Three.js & TWEEN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    (function(global) {
+      function isFunc(f){return typeof f==='function'}
+      function Tween(obj) {
+        this._obj=obj; this._to={}; this._duration=1000;
+        this._easing=t=>t; this._start=null; this._onUpdate=[]; this._onComplete=[];
+      }
+      Tween.prototype.to = function(props,dur){ this._to=props; this._duration=dur||1000; return this; };
+      Tween.prototype.start = function(delay){
+        this._start = Date.now() + (delay||0);
+        Tween._tweens.push(this);
+        return this;
+      };
+      Tween.prototype.easing = function(fn){this._easing=fn;return this};
+      Tween.prototype.onUpdate = function(fn){this._onUpdate.push(fn);return this};
+      Tween.prototype.onComplete = function(fn){this._onComplete.push(fn);return this};
+      Tween.prototype.update = function(time){
+        if(time < this._start) return true;
+        let t = (time - this._start)/this._duration;
+        t = t>1?1:t;
+        t = this._easing(t);
+        let done=true;
+        for(let k in this._to){
+          if(this._obj[k]!==undefined){
+            const diff = this._to[k] - this._obj[k];
+            this._obj[k] += diff * t;
+            if(Math.abs(diff)>1e-3) done=false;
+          }
+        }
+        this._onUpdate.forEach(fn=>fn(this._obj,t));
+        if(done){
+          this._onComplete.forEach(fn=>fn(this._obj));
+          return false;
+        }
+        return true;
+      };
+      Tween._tweens=[];
+      Tween.update = function(){
+        const now=Date.now();
+        Tween._tweens = Tween._tweens.filter(t=>t.update(now));
+      };
+      global.TWEEN = Tween;
+      function animateTween(){
+        requestAnimationFrame(animateTween);
+        TWEEN.update();
+      }
+      animateTween();
+    })(window);
+  </script>
+
+  <script>
+    // Helpers
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x+r, y);
+      ctx.lineTo(x+w-r, y);
+      ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+      ctx.lineTo(x+w, y+h-r);
+      ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+      ctx.lineTo(x+r, y+h);
+      ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+      ctx.lineTo(x, y+r);
+      ctx.quadraticCurveTo(x, y, x+r, y);
+      ctx.closePath();
+    }
+    function createCardCanvas(num) {
+      const c=document.createElement('canvas');
+      c.width=c.height=512;
+      const ctx=c.getContext('2d');
+      const b=20, r=50;
+      ctx.fillStyle='#FFD700';
+      roundRect(ctx,0,0,512,512,r);
+      ctx.fill();
+      ctx.lineWidth=b; ctx.strokeStyle='silver';
+      roundRect(ctx,b/2,b/2,512-b,512-b,r-b/2);
+      ctx.stroke();
+      ctx.fillStyle='#000'; ctx.font='bold 220px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(num,256,256);
+      return c;
+    }
+    function createRoundedRectShape(width, height, radius) {
+      const shape = new THREE.Shape();
+      const hw = width/2, hh = height/2;
+      shape.moveTo(-hw+radius, -hh);
+      shape.lineTo(hw-radius, -hh);
+      shape.quadraticCurveTo(hw, -hh, hw, -hh+radius);
+      shape.lineTo(hw, hh-radius);
+      shape.quadraticCurveTo(hw, hh, hw-radius, hh);
+      shape.lineTo(-hw+radius, hh);
+      shape.quadraticCurveTo(-hw, hh, -hw, hh-radius);
+      shape.lineTo(-hw, -hh+radius);
+      shape.quadraticCurveTo(-hw, -hh, -hw+radius, -hh);
+      return shape;
+    }
+
+    // Scene setup
+    let scene, camera, renderer, cardMesh, uniforms;
+    let currentCardNumber = 1, cardSide = 0;
+    function initThree() {
+      scene = new THREE.Scene();
+      const W = window.innerWidth, H = window.innerHeight;
+      camera = new THREE.PerspectiveCamera(40, W/H, 0.1, 1000);
+      camera.position.z = 4;
+      renderer = new THREE.WebGLRenderer({antialias:true,alpha:true});
+      renderer.setSize(W,H);
+      document.body.appendChild(renderer.domElement);
+
+      const cw=2.5, ch=3.5, cr=0.2;
+      const shape = createRoundedRectShape(cw,ch,cr);
+      const geo = new THREE.ShapeGeometry(shape);
+      const defaultTex = new THREE.TextureLoader().load('https://files.catbox.moe/s0eqwl.jpeg');
+
+      uniforms = {
+        tilt: {value:new THREE.Vector2(0,0)},
+        cardTexture: {value:defaultTex},
+        foilIntensity: {value:parseFloat(document.getElementById('foilIntensity').value)},
+        foilType: {value:parseFloat(document.getElementById('foilTypeSelect').value)}
+      };
+
+      const vs = `
+        varying vec2 vUv;
+        void main(){
+          vUv = vec2((position.x + ${cw/2})/${cw.toFixed(1)}, (position.y + ${ch/2})/${ch.toFixed(1)});
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.);
+        }
+      `;
+      const fs = `
+        uniform vec2 tilt;
+        uniform sampler2D cardTexture;
+        uniform float foilIntensity, foilType;
+        varying vec2 vUv;
+        void main(){
+          vec3 base = texture2D(cardTexture,vUv).rgb;
+          vec3 holo;
+          holo.r = sin(vUv.x*(6. + foilType*0.5) + tilt.y*1.2)*0.5+0.5;
+          holo.g = sin(vUv.y*(6. + foilType*0.5) + tilt.x*1.2)*0.5+0.5;
+          holo.b = sin((vUv.x+vUv.y)*(3. + foilType*0.25)+(tilt.x+tilt.y)*0.8)*0.5+0.5;
+          gl_FragColor = vec4(mix(base,holo,foilIntensity),1.);
+        }
+      `;
+
+      const mat = new THREE.ShaderMaterial({uniforms, vertexShader:vs, fragmentShader:fs});
+      cardMesh = new THREE.Mesh(geo, mat);
+      cardMesh.scale.set(0.5,0.5,0.5);
+      scene.add(cardMesh);
+
+      updateCardTexture();
+      animate();
+    }
+
+    function updateCardTexture() {
+      if (cardSide===0 && currentCardNumber<=15) {
+        const map = {
+          1:'https://files.catbox.moe/s0eqwl.jpeg',
+          2:'https://files.catbox.moe/3by4nm.jpeg',
+          3:'https://files.catbox.moe/ih2hln.jpeg',
+          4:'https://files.catbox.moe/j2e9gc.jpeg',
+          5:'https://files.catbox.moe/gky54m.jpeg',
+          6:'https://files.catbox.moe/boa0xf.jpeg',
+          7:'https://files.catbox.moe/t8mvx3.jpeg',
+          8:'https://files.catbox.moe/l5mo9u.jpeg',
+          9:'https://files.catbox.moe/k6jdak.jpeg',
+          10:'https://files.catbox.moe/7yshnh.jpeg',
+          11:'https://files.catbox.moe/9o1wh3.jpeg',
+          12:'https://files.catbox.moe/4kx9fz.jpeg',
+          13:'https://files.catbox.moe/5w8ig6.jpeg',
+          14:'https://files.catbox.moe/1695hj.jpeg',
+          15:'https://files.catbox.moe/jgvp4p.jpeg'
+        };
+        new THREE.TextureLoader().load(map[currentCardNumber], tex => {
+          uniforms.cardTexture.value = tex;
+        });
+      } else {
+        const c = createCardCanvas(currentCardNumber);
+        const tex = new THREE.CanvasTexture(c);
+        tex.minFilter = THREE.LinearFilter;
+        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+        uniforms.cardTexture.value = tex;
+      }
+    }
+
+    // Interaction
+    let dragging=false, startX, startY;
+    function initInteraction(){
+      const el = renderer.domElement;
+      el.addEventListener('dblclick', toggleCardSide);
+      let lastTap = 0;
+      el.addEventListener('pointerup', e=>{
+        const now = Date.now();
+        if(now - lastTap < 300 && now - lastTap > 0) toggleCardSide();
+        lastTap = now;
+      });
+      function onDown(e){ dragging=true; startX=e.clientX||e.touches[0].clientX; startY=e.clientY||e.touches[0].clientY; }
+      function onUp(){ dragging=false; }
+      function onMove(e){
+        if(!dragging) return;
+        const x = (e.clientX||e.touches[0].clientX) - startX;
+        const y = (e.clientY||e.touches[0].clientY) - startY;
+        const tiltX = THREE.MathUtils.clamp(y/5,-30,30);
+        const tiltY = THREE.MathUtils.clamp(x/5,-30,30);
+        cardMesh.rotation.x = THREE.MathUtils.degToRad(tiltX);
+        cardMesh.rotation.y = THREE.MathUtils.degToRad(tiltY);
+        uniforms.tilt.value.set(tiltX*0.1, tiltY*0.1);
+      }
+      el.addEventListener('mousedown', onDown);
+      el.addEventListener('touchstart', onDown);
+      el.addEventListener('mouseup', onUp);
+      el.addEventListener('touchend', onUp);
+      el.addEventListener('mousemove', onMove);
+      el.addEventListener('touchmove', onMove);
+
+      document.getElementById('foilIntensity').addEventListener('input', e=>{
+        uniforms.foilIntensity.value = parseFloat(e.target.value);
+      });
+      document.getElementById('foilTypeSelect').addEventListener('change', e=>{
+        uniforms.foilType.value = parseFloat(e.target.value);
+      });
+    }
+
+    function toggleCardSide(){
+      const target = cardMesh.rotation.y + Math.PI;
+      new TWEEN(cardMesh.rotation).to({y:target},500)
+        .easing(TWEEN.Easing.Quadratic.Out)
+        .onComplete(() => updateCardTexture())
+        .start();
+      cardSide = 1 - cardSide;
+    }
+
+    function swipeCard(dx, newNum){
+      new TWEEN(cardMesh.position).to({x:cardMesh.position.x + dx},200)
+        .easing(TWEEN.Easing.Quadratic.Out)
+        .onComplete(()=>{
+          currentCardNumber = newNum;
+          if(cardSide!==0) toggleCardSide();
+          updateCardTexture();
+          new TWEEN(cardMesh.position).to({x:0},200).easing(TWEEN.Easing.Quadratic.Out).start();
+        }).start();
+    }
+
+    function animate(){
+      requestAnimationFrame(animate);
+      if(!dragging){
+        cardMesh.quaternion.slerp(new THREE.Quaternion(),0.1);
+        uniforms.tilt.value.lerp(new THREE.Vector2(0,0),0.1);
+      }
+      renderer.render(scene, camera);
+    }
+
+    // Binder Modal
+    function initBinder(){
+      const btn = document.getElementById('binderBtn');
+      const modal = document.getElementById('binderModal');
+      const grid = document.getElementById('binderGrid');
+      btn.addEventListener('click', ()=>{
+        grid.innerHTML = '';
+        for(let i=1;i<=18;i++){
+          const div = document.createElement('div');
+          div.className = 'binder-card';
+          if(i<=15){
+            const urls = {
+              1:'https://files.catbox.moe/s0eqwl.jpeg',
+              2:'https://files.catbox.moe/3by4nm.jpeg',
+              3:'https://files.catbox.moe/ih2hln.jpeg',
+              4:'https://files.catbox.moe/j2e9gc.jpeg',
+              5:'https://files.catbox.moe/gky54m.jpeg',
+              6:'https://files.catbox.moe/boa0xf.jpeg',
+              7:'https://files.catbox.moe/t8mvx3.jpeg',
+              8:'https://files.catbox.moe/l5mo9u.jpeg',
+              9:'https://files.catbox.moe/k6jdak.jpeg',
+              10:'https://files.catbox.moe/7yshnh.jpeg',
+              11:'https://files.catbox.moe/9o1wh3.jpeg',
+              12:'https://files.catbox.moe/4kx9fz.jpeg',
+              13:'https://files.catbox.moe/5w8ig6.jpeg',
+              14:'https://files.catbox.moe/1695hj.jpeg',
+              15:'https://files.catbox.moe/jgvp4p.jpeg'
+            };
+            const img = document.createElement('img');
+            img.src = urls[i];
+            div.appendChild(img);
+          } else {
+            div.textContent = i;
+          }
+          div.addEventListener('click', ()=>{
+            currentCardNumber = i;
+            if(cardSide!==0) toggleCardSide();
+            updateCardTexture();
+            modal.style.display = 'none';
+          });
+          grid.appendChild(div);
+        }
+        modal.style.display = 'flex';
+      });
+      modal.addEventListener('click', e=>{
+        if(e.target===modal) modal.style.display='none';
+      });
+    }
+
+    // Bottom nav
+    function initNav(){
+      document.getElementById('rightArrow').addEventListener('click', ()=>{
+        const next = (currentCardNumber===18?1:currentCardNumber+1);
+        swipeCard(-0.5, next);
+      });
+      document.getElementById('leftArrow').addEventListener('click', ()=>{
+        const prev = (currentCardNumber===1?18:currentCardNumber-1);
+        swipeCard(0.5, prev);
+      });
+      document.getElementById('flipBtn').addEventListener('click', toggleCardSide);
+      window.addEventListener('resize', ()=>{
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth/window.innerHeight;
+        camera.updateProjectionMatrix();
+      });
+    }
+
+    // Initialize everything
+    initThree();
+    initInteraction();
+    initBinder();
+    initNav();
+  </script>
+</body>
+</html>
