@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Isometric Terrain with Water and Moving Character</title>
+  <style>
+    body { background: #222; margin: 0; overflow: hidden; }
+    canvas { display: block; }
+    /* Water control buttons positioned top-right */
+    #waterControl {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 100;
+      font-family: sans-serif;
+    }
+    #waterControl button {
+      width: 40px;
+      height: 40px;
+      font-size: 24px;
+      margin: 2px;
+      border: none;
+      background: #444;
+      color: white;
+      border-radius: 4px;
+    }
+    #waterControl span {
+      color: white;
+      font-size: 18px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Water level control buttons -->
+  <div id="waterControl">
+    <button id="plusBtn">+</button>
+    <button id="minusBtn">–</button>
+    <span id="waterLevelDisplay">Water: 7</span>
+  </div>
+  <canvas id="terrainCanvas"></canvas>
+  <script>
+    // --- Perlin Noise Implementation ---
+    let noise = (function() {
+      let module = {};
+      (function() {
+        var grad3 = [
+          [1,1,0], [-1,1,0], [1,-1,0], [-1,-1,0],
+          [1,0,1], [-1,0,1], [1,0,-1], [-1,0,-1],
+          [0,1,1], [0,-1,1], [0,1,-1], [0,-1,-1]
+        ];
+        var p = [];
+        for (var i = 0; i < 256; i++) {
+          p[i] = Math.floor(Math.random() * 256);
+        }
+        var perm = [];
+        for (var i = 0; i < 512; i++) {
+          perm[i] = p[i & 255];
+        }
+        function fade(t) { return t*t*t*(t*(t*6-15)+10); }
+        function lerp(a, b, t) { return (1-t)*a + t*b; }
+        function grad(hash, x, y, z) {
+          var h = hash & 15;
+          var u = h < 8 ? x : y;
+          var v = h < 4 ? y : (h === 12 || h === 14 ? x : z);
+          return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+        }
+        module.perlin2 = function(x, y) {
+          var X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
+          x -= Math.floor(x);
+          y -= Math.floor(y);
+          var u = fade(x), v = fade(y);
+          var A = perm[X] + Y, AA = perm[A], AB = perm[A + 1];
+          var B = perm[X + 1] + Y, BA = perm[B], BB = perm[B + 1];
+          return lerp(
+            lerp(grad(perm[AA], x, y, 0), grad(perm[BA], x-1, y, 0), u),
+            lerp(grad(perm[AB], x, y-1, 0), grad(perm[BB], x-1, y-1, 0), u),
+            v
+          );
+        };
+      })();
+      return module;
+    })();
+
+    // --- Setup Canvas ---
+    const canvas = document.getElementById("terrainCanvas");
+    const ctx = canvas.getContext("2d");
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    // --- Constants ---
+    const TILE_SIZE = 32;
+    const GRID_SIZE = 20;
+    const HEIGHT_SCALE = 12;
+    // Terrain heights roughly range from 0 (lowest) to ~24 (highest).
+    // Change waterLevel via the on-screen buttons.
+    let waterLevel = 7;  // Water is drawn as a flat transparent layer at this fixed level
+
+    // --- Generate Terrain ---
+    let terrain = generateTerrain();
+    function generateTerrain() {
+      let map = [];
+      for (let x = 0; x < GRID_SIZE; x++) {
+        map[x] = [];
+        for (let y = 0; y < GRID_SIZE; y++) {
+          let height = Math.floor(noise.perlin2(x / 10, y / 10) * HEIGHT_SCALE + HEIGHT_SCALE);
+          map[x][y] = height;
+        }
+      }
+      return map;
+    }
+
+    // --- Utility: Get tile center in screen coordinates ---
+    // Accepts fractional grid coordinates and a height value.
+    function getTileCenter(gridX, gridY, height) {
+      const isoX = (gridX - gridY) * TILE_SIZE / 2 + canvas.width / 2;
+      const isoY = (gridX + gridY) * TILE_SIZE / 4 - height * 4 + canvas.height / 3 + TILE_SIZE/4;
+      return { x: isoX, y: isoY };
+    }
+
+    // --- Character Setup ---
+    // The character's grid position is stored as floating-point numbers for smooth movement.
+    let character = {
+      gridX: Math.floor(GRID_SIZE/2),
+      gridY: Math.floor(GRID_SIZE/2),
+      posX: Math.floor(GRID_SIZE/2), // current grid X (can be fractional)
+      posY: Math.floor(GRID_SIZE/2), // current grid Y
+      currentHeight: terrain[Math.floor(GRID_SIZE/2)][Math.floor(GRID_SIZE/2)],
+      targetX: Math.floor(GRID_SIZE/2),
+      targetY: Math.floor(GRID_SIZE/2),
+      startX: Math.floor(GRID_SIZE/2),
+      startY: Math.floor(GRID_SIZE/2),
+      startHeight: terrain[Math.floor(GRID_SIZE/2)][Math.floor(GRID_SIZE/2)],
+      moveProgress: 1  // 1 means no movement in progress
+    };
+
+    // --- Draw Terrain ---
+    function drawTerrain() {
+      // Loop through each tile and draw the land
+      for (let x = 0; x < GRID_SIZE; x++) {
+        for (let y = 0; y < GRID_SIZE; y++) {
+          drawIsometricTile(x, y, terrain[x][y]);
+          // If the terrain is below waterLevel, overlay a flat water surface at waterLevel
+          if (terrain[x][y] < waterLevel) {
+            drawWaterTile(x, y);
+          }
+        }
+      }
+    }
+
+    // Draw a single tile of land
+    function drawIsometricTile(x, y, height) {
+      const isoX = (x - y) * TILE_SIZE / 2 + canvas.width / 2;
+      const isoY = (x + y) * TILE_SIZE / 4 - height * 4 + canvas.height / 3;
+      ctx.fillStyle = `rgb(${50 + height * 10}, ${150 + height * 5}, 50)`;
+      ctx.beginPath();
+      ctx.moveTo(isoX, isoY);
+      ctx.lineTo(isoX + TILE_SIZE/2, isoY + TILE_SIZE/4);
+      ctx.lineTo(isoX, isoY + TILE_SIZE/2);
+      ctx.lineTo(isoX - TILE_SIZE/2, isoY + TILE_SIZE/4);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Draw a water overlay tile at the fixed waterLevel
+    function drawWaterTile(x, y) {
+      const waterIsoX = (x - y) * TILE_SIZE / 2 + canvas.width / 2;
+      const waterIsoY = (x + y) * TILE_SIZE / 4 - waterLevel * 4 + canvas.height / 3;
+      ctx.fillStyle = "rgba(0, 0, 255, 0.3)";
+      ctx.beginPath();
+      ctx.moveTo(waterIsoX, waterIsoY);
+      ctx.lineTo(waterIsoX + TILE_SIZE/2, waterIsoY + TILE_SIZE/4);
+      ctx.lineTo(waterIsoX, waterIsoY + TILE_SIZE/2);
+      ctx.lineTo(waterIsoX - TILE_SIZE/2, waterIsoY + TILE_SIZE/4);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // --- Draw Character as an Isometric Block ---
+    function drawCharacter() {
+      // Compute screen coordinates from the character's fractional grid position and its interpolated height
+      let center = getTileCenter(character.posX, character.posY, character.currentHeight);
+      // Parameters for the character block (smaller than a tile)
+      const blockWidth = 16;
+      const blockDepth = 16;
+      const blockHeight = 20;
+      
+      // Top face vertices
+      let T = { x: center.x, y: center.y - blockDepth/2 };
+      let R = { x: center.x + blockWidth/2, y: center.y };
+      let B = { x: center.x, y: center.y + blockDepth/2 };
+      let L = { x: center.x - blockWidth/2, y: center.y };
+      
+      // Vertical offset for the block's height
+      const hOffset = blockHeight;
+      let L2 = { x: L.x, y: L.y + hOffset };
+      let R2 = { x: R.x, y: R.y + hOffset };
+      let B2 = { x: B.x, y: B.y + hOffset };
+
+      // Draw top face
+      ctx.fillStyle = "#ff5555";
+      ctx.beginPath();
+      ctx.moveTo(T.x, T.y);
+      ctx.lineTo(R.x, R.y);
+      ctx.lineTo(B.x, B.y);
+      ctx.lineTo(L.x, L.y);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Draw left face
+      ctx.fillStyle = "#cc4444";
+      ctx.beginPath();
+      ctx.moveTo(L.x, L.y);
+      ctx.lineTo(B.x, B.y);
+      ctx.lineTo(B2.x, B2.y);
+      ctx.lineTo(L2.x, L2.y);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Draw right face
+      ctx.fillStyle = "#dd5555";
+      ctx.beginPath();
+      ctx.moveTo(R.x, R.y);
+      ctx.lineTo(B.x, B.y);
+      ctx.lineTo(B2.x, B2.y);
+      ctx.lineTo(R2.x, R2.y);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // --- Animation Loop ---
+    function update() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawTerrain();
+      
+      // If movement is in progress, update the character's position
+      if (character.moveProgress < 1) {
+        const speed = 0.02;  // Adjust movement speed here
+        character.moveProgress += speed;
+        if (character.moveProgress > 1) character.moveProgress = 1;
+        // Interpolate grid coordinates and height from start to target
+        character.posX = character.startX + (character.targetX - character.startX) * character.moveProgress;
+        character.posY = character.startY + (character.targetY - character.startY) * character.moveProgress;
+        character.currentHeight = character.startHeight + (character.targetHeight - character.startHeight) * character.moveProgress;
+      }
+      
+      drawCharacter();
+      requestAnimationFrame(update);
+    }
+    update();
+
+    // --- Click Event: Set New Target for Character Movement ---
+    canvas.addEventListener("click", function(event) {
+      const clickX = event.clientX;
+      const clickY = event.clientY;
+      
+      // Find the tile whose center is closest to the click
+      let closestTile = { x: 0, y: 0 };
+      let minDist = Infinity;
+      for (let x = 0; x < GRID_SIZE; x++) {
+        for (let y = 0; y < GRID_SIZE; y++) {
+          let center = getTileCenter(x, y, terrain[x][y]);
+          let dist = Math.hypot(clickX - center.x, clickY - center.y);
+          if (dist < minDist) {
+            minDist = dist;
+            closestTile = { x: x, y: y };
+          }
+        }
+      }
+      
+      // Set up movement parameters for a smooth walk
+      character.startX = character.posX;
+      character.startY = character.posY;
+      character.startHeight = character.currentHeight;
+      character.targetX = closestTile.x;
+      character.targetY = closestTile.y;
+      character.targetHeight = terrain[closestTile.x][closestTile.y];
+      character.moveProgress = 0;
+    });
+
+    // --- Water Level Control via On-screen Buttons ---
+    const plusBtn = document.getElementById("plusBtn");
+    const minusBtn = document.getElementById("minusBtn");
+    const waterLevelDisplay = document.getElementById("waterLevelDisplay");
+
+    plusBtn.addEventListener("click", function() {
+      waterLevel++; // Increase water level
+      waterLevelDisplay.textContent = "Water: " + waterLevel;
+    });
+    minusBtn.addEventListener("click", function() {
+      waterLevel--; // Decrease water level
+      waterLevelDisplay.textContent = "Water: " + waterLevel;
+    });
+  </script>
+</body>
+</html>

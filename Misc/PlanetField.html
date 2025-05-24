@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Ensures proper scaling on devices (e.g. iPhone’s 9:16 screens) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Endless Space – Refined Rings & Star Clusters</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      overflow: hidden;
+    }
+    /* We now allow smoothing for our refined drawings */
+    canvas {
+      display: block;
+      background: #000;
+      image-rendering: auto;
+    }
+  </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script>
+  // --- Canvas Setup and Global Variables ---
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  
+  let cameraZ = 0;
+  let cameraSpeed = 5;
+  let isMoving = false; // User input to speed up movement
+  let f = 0; // Focal length, set on resize
+  
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    f = canvas.height;
+  }
+  window.addEventListener("resize", resizeCanvas);
+  resizeCanvas();
+  
+  // --- Utility Functions ---
+  function randRange(min, max) { return Math.random() * (max - min) + min; }
+  function randInt(min, max) { return Math.floor(randRange(min, max)); }
+  function pick(arr) { return arr[randInt(0, arr.length)]; }
+  // Returns a random point within a circle of a given radius.
+  function randomPointInCircle(radius) {
+    const angle = Math.random() * 2 * Math.PI;
+    const r = radius * Math.sqrt(Math.random());
+    return { x: r * Math.cos(angle), y: r * Math.sin(angle) };
+  }
+  
+  // --- 3D Object Settings ---
+  const NUM_STARS = 200;
+  const NUM_PLANETS = 10;
+  const STAR_AREA_RADIUS = 500;
+  const PLANET_AREA_RADIUS = 300;
+  const NEAR_Z = 1000;
+  const FAR_Z = 5000;
+  
+  let stars = [];
+  let planets = [];
+  
+  // --- Create Regular Stars (with gentle flicker) ---
+  function createStars() {
+    stars = [];
+    for (let i = 0; i < NUM_STARS; i++) {
+      const pos = randomPointInCircle(STAR_AREA_RADIUS);
+      const z = randRange(NEAR_Z, FAR_Z);
+      stars.push({ 
+        x: pos.x, 
+        y: pos.y, 
+        z: z, 
+        color: pick(["#fff", "#ffd700", "#ffe", "#ddd"]),
+        alpha: randRange(0.5, 1),
+        alphaSpeed: randRange(0.005, 0.02)
+      });
+    }
+  }
+  
+  // --- Create Star Clusters ---
+  // These clusters are dense patches of tiny stars with purple–pink hues.
+  function createStarClusters() {
+    const NUM_CLUSTERS = 5;
+    const CLUSTER_STARS_MIN = 8;
+    const CLUSTER_STARS_MAX = 15;
+    for (let i = 0; i < NUM_CLUSTERS; i++) {
+      const centerPos = randomPointInCircle(STAR_AREA_RADIUS * 0.8);
+      const z = randRange(NEAR_Z, FAR_Z);
+      const numStars = randInt(CLUSTER_STARS_MIN, CLUSTER_STARS_MAX);
+      for (let j = 0; j < numStars; j++) {
+        const offset = randomPointInCircle(20);
+        stars.push({
+          x: centerPos.x + offset.x,
+          y: centerPos.y + offset.y,
+          z: z + randRange(-50, 50),
+          color: pick(["#ffccff", "#ff99ff", "#ff66ff", "#cc66ff", "#cc33ff"]),
+          alpha: randRange(0.5, 1),
+          alphaSpeed: randRange(0.005, 0.02)
+        });
+      }
+    }
+  }
+  
+  // --- Planet Sprite Generator (Smooth Version) ---
+  // Offscreen canvas sprites for planets.
+  const SPRITE_SIZE = 64;
+  
+  function generatePlanetSprite(type) {
+    const off = document.createElement("canvas");
+    off.width = SPRITE_SIZE;
+    off.height = SPRITE_SIZE;
+    const octx = off.getContext("2d");
+    octx.imageSmoothingEnabled = true;
+    const center = SPRITE_SIZE / 2;
+    
+    if (type === "earthLike") {
+      // Draw the ocean as a smooth blue circle.
+      octx.beginPath();
+      octx.arc(center, center, SPRITE_SIZE * 0.4, 0, 2 * Math.PI);
+      octx.fillStyle = "#1f51ff";
+      octx.fill();
+      // Add chunky green land masses.
+      const numBlobs = randInt(3, 6);
+      for (let i = 0; i < numBlobs; i++) {
+        const blobCenter = {
+          x: center + randRange(-SPRITE_SIZE * 0.2, SPRITE_SIZE * 0.2),
+          y: center + randRange(-SPRITE_SIZE * 0.2, SPRITE_SIZE * 0.2)
+        };
+        const blobRadius = SPRITE_SIZE * randRange(0.07, 0.15);
+        octx.beginPath();
+        octx.arc(blobCenter.x, blobCenter.y, blobRadius, 0, 2 * Math.PI);
+        octx.fillStyle = "#2ecc71";
+        octx.fill();
+      }
+    } else if (type === "saturnLike") {
+      // --- Saturn-like: Draw a ring whose top half is hidden, with rounded side edges.
+      const tilt = 0.5; // y-axis scaling for ellipse
+      const ringColor = pick(["#f5deb3", "#e6cba8", "#ffecb3"]);
+      const outerR = SPRITE_SIZE * 0.55;
+      const innerR = SPRITE_SIZE * 0.45;
+      
+      // Step 1: Draw the full ring annulus.
+      octx.beginPath();
+      octx.ellipse(center, center, outerR, outerR * tilt, 0, 0, 2 * Math.PI);
+      octx.ellipse(center, center, innerR, innerR * tilt, 0, 0, 2 * Math.PI);
+      octx.fillStyle = ringColor;
+      octx.fill("evenodd");
+      
+      // Step 2: Draw the planet disc over the ring.
+      const planetColor = pick(["#f2b36f", "#f7d76f", "#ffbe82", "#e3a46b"]);
+      octx.beginPath();
+      octx.arc(center, center, SPRITE_SIZE * 0.4, 0, 2 * Math.PI);
+      octx.fillStyle = planetColor;
+      octx.fill();
+      
+      // Step 3: Re-draw the front (visible) half of the ring.
+      // Instead of clipping with a straight line (which gives flat edges),
+      // we re-draw an elliptical arc with rounded caps.
+      octx.save();
+      octx.beginPath();
+      octx.lineCap = "round";
+      octx.lineWidth = outerR - innerR; // ring thickness
+      octx.strokeStyle = ringColor;
+      // Use adjusted angles so the arc covers only the lower (front) portion.
+      const startAngle = 0.2;
+      const endAngle = Math.PI - 0.2;
+      octx.ellipse(center, center, (outerR+innerR)/2, ((outerR+innerR)/2)*tilt, 0, startAngle, endAngle, false);
+      octx.stroke();
+      octx.restore();
+      
+    } else if (type === "rocky") {
+      // Draw a rocky circle.
+      octx.beginPath();
+      octx.arc(center, center, SPRITE_SIZE * 0.4, 0, 2 * Math.PI);
+      octx.fillStyle = pick(["#bfb8aa", "#a9a9a9", "#c2b280"]);
+      octx.fill();
+      // Add crater-like details.
+      const numCraters = randInt(2, 5);
+      for (let i = 0; i < numCraters; i++) {
+        const craterCenter = {
+          x: center + randRange(-SPRITE_SIZE * 0.2, SPRITE_SIZE * 0.2),
+          y: center + randRange(-SPRITE_SIZE * 0.2, SPRITE_SIZE * 0.2)
+        };
+        const craterRadius = SPRITE_SIZE * randRange(0.05, 0.1);
+        octx.beginPath();
+        octx.arc(craterCenter.x, craterCenter.y, craterRadius, 0, 2 * Math.PI);
+        octx.fillStyle = "#888";
+        octx.fill();
+      }
+    } else if (type === "gasGiant") {
+      // Draw the base circle for a gas giant.
+      octx.beginPath();
+      octx.arc(center, center, SPRITE_SIZE * 0.4, 0, 2 * Math.PI);
+      const baseColor = pick(["#fa8072", "#d35400", "#ffaf00", "#c97f4f"]);
+      octx.fillStyle = baseColor;
+      octx.fill();
+      // Draw wavy stripes, clipped to the planet disc.
+      octx.save();
+      octx.beginPath();
+      octx.arc(center, center, SPRITE_SIZE * 0.4, 0, 2 * Math.PI);
+      octx.clip();
+      const stripeCount = randInt(3, 5);
+      for (let s = 0; s < stripeCount; s++) {
+        let stripeColor = pick(["#ffcc99", "#ffe5b4", "#ffdfa0"]);
+        octx.beginPath();
+        const yBase = center - SPRITE_SIZE * 0.4 + s * (SPRITE_SIZE * 0.8 / (stripeCount - 1));
+        const amplitude = SPRITE_SIZE * 0.03;
+        const frequency = randRange(0.05, 0.15);
+        const phase = randRange(0, Math.PI * 2);
+        for (let x = center - SPRITE_SIZE * 0.4; x <= center + SPRITE_SIZE * 0.4; x++) {
+          let offset = amplitude * Math.sin(frequency * (x - (center - SPRITE_SIZE * 0.4)) + phase);
+          let y = yBase + offset;
+          if (x === Math.floor(center - SPRITE_SIZE * 0.4)) {
+            octx.moveTo(x, y);
+          } else {
+            octx.lineTo(x, y);
+          }
+        }
+        octx.lineWidth = 2;
+        octx.strokeStyle = stripeColor;
+        octx.stroke();
+      }
+      octx.restore();
+    }
+    return off;
+  }
+  
+  // --- Create 3D Planets (with Non-Overlap) ---
+  function createPlanets() {
+    planets = [];
+    let attempts = 0;
+    const separationThreshold = SPRITE_SIZE * 3.0; // Increased threshold to reduce overlap.
+    while (planets.length < NUM_PLANETS && attempts < 5000) {
+      attempts++;
+      const pos = randomPointInCircle(PLANET_AREA_RADIUS);
+      const z = randRange(NEAR_Z, FAR_Z);
+      const type = pick(["earthLike", "saturnLike", "rocky", "gasGiant"]);
+      let overlap = false;
+      for (let p of planets) {
+        const dx = pos.x - p.x;
+        const dy = pos.y - p.y;
+        const dz = z - p.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist < separationThreshold) {
+          overlap = true;
+          break;
+        }
+      }
+      if (!overlap) {
+        const sprite = generatePlanetSprite(type);
+        planets.push({ x: pos.x, y: pos.y, z: z, type: type, sprite: sprite, baseSize: SPRITE_SIZE });
+      }
+    }
+  }
+  
+  // --- Recycling Objects ---
+  // When an object (star/planet) moves too close (z < cameraZ+100), reposition it far ahead.
+  function updateStar(star) {
+    if (star.z < cameraZ + 100) {
+      const pos = randomPointInCircle(STAR_AREA_RADIUS);
+      star.x = pos.x;
+      star.y = pos.y;
+      star.z = cameraZ + FAR_Z;
+    }
+  }
+  function updatePlanet(planet) {
+    if (planet.z < cameraZ + 100) {
+      const pos = randomPointInCircle(PLANET_AREA_RADIUS);
+      planet.x = pos.x;
+      planet.y = pos.y;
+      planet.z = cameraZ + FAR_Z;
+      // Regenerate sprite for variety.
+      planet.type = pick(["earthLike", "saturnLike", "rocky", "gasGiant"]);
+      planet.sprite = generatePlanetSprite(planet.type);
+    }
+  }
+  
+  // --- Perspective Projection ---
+  function project(x, y, z) {
+    const scale = f / (z - cameraZ);
+    const screenX = canvas.width / 2 + x * scale;
+    const screenY = canvas.height / 2 + y * scale;
+    return { screenX, screenY, scale };
+  }
+  
+  // --- Animation Loop ---
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Adjust camera speed based on user input.
+    cameraSpeed = isMoving ? 20 : 5;
+    cameraZ += cameraSpeed;
+    
+    // Update and draw stars (including clusters).
+    for (let star of stars) {
+      star.alpha += star.alphaSpeed;
+      if (star.alpha > 1 || star.alpha < 0.5) star.alphaSpeed *= -1;
+      updateStar(star);
+      const { screenX, screenY, scale } = project(star.x, star.y, star.z);
+      const size = 2 * scale;
+      ctx.globalAlpha = star.alpha;
+      ctx.fillStyle = star.color;
+      ctx.fillRect(screenX, screenY, size, size);
+      ctx.globalAlpha = 1.0;
+    }
+    
+    // Sort planets by depth (farther ones drawn first) to reduce bleed-through.
+    planets.sort((a, b) => a.z - b.z);
+    for (let planet of planets) {
+      updatePlanet(planet);
+      const { screenX, screenY, scale } = project(planet.x, planet.y, planet.z);
+      const size = planet.baseSize * scale;
+      ctx.drawImage(planet.sprite, screenX - size / 2, screenY - size / 2, size, size);
+    }
+    
+    requestAnimationFrame(animate);
+  }
+  
+  // --- User Interaction ---
+  function setMoving(val) { isMoving = val; }
+  window.addEventListener("mousedown", () => setMoving(true));
+  window.addEventListener("mouseup", () => setMoving(false));
+  window.addEventListener("touchstart", () => setMoving(true));
+  window.addEventListener("touchend", () => setMoving(false));
+  
+  // --- Initialize and Start ---
+  createStars();
+  createStarClusters();
+  createPlanets();
+  animate();
+</script>
+</body>
+</html>

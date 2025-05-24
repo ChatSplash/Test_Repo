@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Isometric Terrain Generator</title>
+  <style>
+    body {
+      background: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    canvas { image-rendering: pixelated; }
+  </style>
+</head>
+<body>
+  <canvas id="isoCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById("isoCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const tileSize = 32;      // Base tile width (before isometric transform)
+    const mapWidth = 10;      // Number of tiles horizontally
+    const mapHeight = 10;     // Number of tiles vertically
+    const maxElevation = 4;   // Maximum terrain elevation level
+
+    // Set canvas size dynamically
+    canvas.width = (mapWidth + mapHeight) * tileSize;
+    canvas.height = (mapWidth + mapHeight) * tileSize * 0.5;
+
+    // Generate terrain heights array
+    let terrain = [];
+    function generateTerrain() {
+      terrain = [];
+      for (let y = 0; y < mapHeight; y++) {
+        terrain[y] = [];
+        for (let x = 0; x < mapWidth; x++) {
+          terrain[y][x] = Math.floor(Math.random() * (maxElevation + 1));
+        }
+      }
+    }
+    generateTerrain();
+
+    // Isometric projection functions
+    function isoX(x, y) {
+      return (x - y) * tileSize * 0.5 + canvas.width / 2;
+    }
+    function isoY(x, y, height) {
+      return (x + y) * tileSize * 0.25 - height * (tileSize * 0.25);
+    }
+
+    // Draw a single tile with shading
+    function drawTile(x, y, height) {
+      const isoXPos = isoX(x, y);
+      const isoYPos = isoY(x, y, height);
+
+      // Colors based on elevation
+      const colors = ["#2a2a2a", "#3a5c2b", "#5e8c31", "#7bb14d", "#a6d75b"];
+      const color = colors[Math.min(height, colors.length - 1)];
+
+      // Top face
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(isoXPos, isoYPos);
+      ctx.lineTo(isoXPos + tileSize * 0.5, isoYPos + tileSize * 0.25);
+      ctx.lineTo(isoXPos, isoYPos + tileSize * 0.5);
+      ctx.lineTo(isoXPos - tileSize * 0.5, isoYPos + tileSize * 0.25);
+      ctx.closePath();
+      ctx.fill();
+
+      // Right side shading
+      ctx.fillStyle = "#1e441f";
+      ctx.beginPath();
+      ctx.moveTo(isoXPos, isoYPos + tileSize * 0.5);
+      ctx.lineTo(isoXPos + tileSize * 0.5, isoYPos + tileSize * 0.25);
+      ctx.lineTo(isoXPos + tileSize * 0.5, isoYPos + tileSize * 0.75);
+      ctx.lineTo(isoXPos, isoYPos + tileSize);
+      ctx.closePath();
+      ctx.fill();
+
+      // Left side shading
+      ctx.fillStyle = "#17311c";
+      ctx.beginPath();
+      ctx.moveTo(isoXPos, isoYPos + tileSize * 0.5);
+      ctx.lineTo(isoXPos - tileSize * 0.5, isoYPos + tileSize * 0.25);
+      ctx.lineTo(isoXPos - tileSize * 0.5, isoYPos + tileSize * 0.75);
+      ctx.lineTo(isoXPos, isoYPos + tileSize);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Draw the full map
+    function drawMap() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < mapHeight; y++) {
+        for (let x = 0; x < mapWidth; x++) {
+          drawTile(x, y, terrain[y][x]);
+        }
+      }
+    }
+    drawMap();
+
+    // --- INTERACTIONS ---
+
+    // On click, increase the elevation of the clicked tile
+    canvas.addEventListener("click", (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+      
+      // Reverse isometric projection (ignoring elevation for simplicity)
+      let tempX = (mouseX - canvas.width / 2) / (tileSize * 0.5);
+      let tempY = mouseY / (tileSize * 0.25);
+      let gridX = Math.floor((tempX + tempY) / 2);
+      let gridY = Math.floor((tempY - tempX) / 2);
+      
+      if (gridX >= 0 && gridX < mapWidth && gridY >= 0 && gridY < mapHeight) {
+        terrain[gridY][gridX] = (terrain[gridY][gridX] + 1) % (maxElevation + 1);
+        drawMap();
+      }
+    });
+
+    // On pressing "R", regenerate the terrain
+    document.addEventListener("keydown", (event) => {
+      if (event.key.toLowerCase() === "r") {
+        generateTerrain();
+        drawMap();
+      }
+    });
+  </script>
+</body>
+</html>
