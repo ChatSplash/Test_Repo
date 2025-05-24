@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>3D Terrain Demo – Revised with Game Modes</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #222; }
+    canvas { display: block; }
+    /* Controls container */
+    #controlsContainer {
+      position: fixed;
+      top: 5px; left: 5px; right: 5px;
+      z-index: 100; font-family: sans-serif;
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    .controlRow { display: flex; justify-content: center; gap: 5px; flex-wrap: nowrap; overflow-x: auto; padding: 0 5px; }
+    .verticalControl { display: flex; flex-direction: column; align-items: center; padding: 2px; width: 50px; }
+    .verticalControl.zoomControl { margin-top: -3px; }
+    .verticalControl button {
+      width: 50px; height: 14px; font-size: 11px;
+      background: rgba(0,0,0,0.6); color: white;
+      border: 1px solid white; border-radius: 3px;
+      margin: 1px 0; padding: 0; line-height: 1;
+      cursor: pointer; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .verticalControl button:active { background: rgba(255,255,255,0.2); }
+    .verticalControl .controlLabel {
+      font-size: 11px; color: white; margin: 1px 0;
+      line-height: 1; text-align: center; width: 50px;
+      border: 1px solid white; border-radius: 3px;
+      padding: 2px 0;
+    }
+    #addFalling {
+      width: 50px; height: 14px; font-size: 11px;
+      margin: 2px 0; outline: none; border: 1px solid white;
+      border-radius: 3px; background: rgba(0,0,0,0.6);
+      color: white; cursor: pointer; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #addFalling:active { background: rgba(255,255,255,0.2); }
+    .smallButton, .smallDropdown {
+      background: rgba(0, 0, 0, 0.6); color: white;
+      border: 1px solid white; padding: 3px 6px;
+      font-size: 11px; border-radius: 3px;
+      white-space: nowrap; flex-shrink: 0;
+      height: 24px; line-height: 24px;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    .smallButton:active { background: rgba(255,255,255,0.2); }
+    .customDropdown { position: relative; display: inline-block; width: 50px; height: 24px; }
+    .customDropdown select {
+      -webkit-appearance: none; -moz-appearance: none; appearance: none;
+      background: transparent; border: 1px solid white;
+      border-radius: 3px; padding: 0 6px; font-size: 11px;
+      color: white; width: 100%; height: 100%;
+      line-height: 24px; text-align: center; box-sizing: border-box;
+    }
+    .customDropdown::after {
+      content: "▼"; position: absolute; top: 50%; right: 6px;
+      transform: translateY(-50%); color: white; pointer-events: none;
+      font-size: 10px;
+    }
+    /* Bottom right UI */
+    #bottomRightPanel {
+      position: fixed; bottom: 5px; right: 5px;
+      z-index: 200; font-family: sans-serif;
+      display: flex; align-items: center; gap: 10px;
+    }
+    #counterContainer { cursor: pointer; }
+    #counterContainer span { font-size: 14px; color: white; }
+    #fullscreenToggle {
+      background: rgba(0, 0, 0, 0.6); color: white;
+      border: 1px solid white; border-radius: 3px;
+      padding: 2px 4px; font-size: 10px;
+      cursor: pointer; user-select: none;
+    }
+    #fullscreenToggle:active { background: rgba(255,255,255,0.2); }
+
+    /* Vertical slider */
+    #verticalSlider {
+      position: fixed; left: 10px; top: 50%;
+      transform: translateY(-50%); z-index: 300;
+      display: none; width: 8px; height: 150px;
+      -webkit-appearance: none; background: transparent;
+    }
+    #verticalSlider::-webkit-slider-runnable-track {
+      width: 8px; height: 150px; background: yellow; border-radius: 4px;
+    }
+    #verticalSlider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px;
+      background: #fff; border: 1px solid #999; border-radius: 50%;
+      margin-top: -7px;
+    }
+    #verticalSlider::-moz-range-track {
+      width: 8px; height: 150px; background: yellow; border-radius: 4px;
+    }
+    #verticalSlider::-moz-range-thumb {
+      width: 16px; height: 16px; background: #fff;
+      border: 1px solid #999; border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+  <!-- Controls Container -->
+  <div id="controlsContainer">
+    <!-- First Row -->
+    <div class="controlRow">
+      <!-- Land -->
+      <div class="verticalControl">
+        <button id="landPlus">+</button>
+        <span class="controlLabel">Land</span>
+        <button id="landMinus">-</button>
+      </div>
+      <!-- Noise -->
+      <div class="verticalControl">
+        <button id="noisePlus">+</button>
+        <span class="controlLabel">Noise</span>
+        <button id="noiseMinus">-</button>
+      </div>
+      <!-- Water -->
+      <div class="verticalControl">
+        <button id="waterLevelPlus">+</button>
+        <span class="controlLabel">Water</span>
+        <button id="waterLevelMinus">-</button>
+      </div>
+      <!-- Wave -->
+      <div class="verticalControl">
+        <button id="wavePlus">+</button>
+        <span class="controlLabel">Wave</span>
+        <button id="waveMinus">-</button>
+      </div>
+      <!-- Obj -->
+      <div class="verticalControl">
+        <button id="objScalePlus">+</button>
+        <button id="addFalling">Obj</button>
+        <button id="objScaleMinus">-</button>
+      </div>
+      <!-- Bounce -->
+      <div class="verticalControl">
+        <button id="bouncePlus">+</button>
+        <span class="controlLabel">Bounce</span>
+        <button id="bounceMinus">-</button>
+      </div>
+      <!-- Damp -->
+      <div class="verticalControl">
+        <button id="dampingPlus">+</button>
+        <span class="controlLabel">Damp</span>
+        <button id="dampingMinus">-</button>
+      </div>
+    </div>
+    <!-- Second Row -->
+    <div class="controlRow">
+      <!-- Zoom -->
+      <div class="verticalControl zoomControl">
+        <button id="zoomPlus">+</button>
+        <span class="controlLabel">Zoom</span>
+        <button id="zoomMinus">-</button>
+      </div>
+      <!-- Water Texture Dropdown -->
+      <div class="customDropdown">
+        <select id="waterTexture" class="smallDropdown">
+          <option value="normal">Water</option>
+          <option value="lava">Lava</option>
+          <option value="ice">Ice</option>
+          <option value="rainbow">Strobe</option>
+          <option value="red">Red</option>
+          <option value="orange">Orange</option>
+          <option value="yellow">Yellow</option>
+          <option value="green">Green</option>
+          <option value="blue">Blue</option>
+          <option value="purple">Purple</option>
+        </select>
+      </div>
+      <!-- POV Dropdown -->
+      <div class="customDropdown">
+        <select id="povSelect" class="smallDropdown">
+          <option value="none">View</option>
+          <option value="Pov">Pov</option>
+        </select>
+      </div>
+      <!-- Game Mode Dropdown -->
+      <div class="customDropdown">
+        <select id="gameModeSelect" class="smallDropdown">
+          <option value="roam">Roam</option>
+          <option value="dm">DM</option>
+          <option value="tdm">TDM</option>
+        </select>
+      </div>
+      <!-- Other Buttons -->
+      <button id="timeToggle" class="smallButton">Time</button>
+      <button id="wireframeToggle" class="smallButton">Wire</button>
+      <button id="generateCity" class="smallButton">City</button>
+      <button id="addNPC" class="smallButton">Npc</button>
+    </div>
+  </div>
+
+  <!-- Bottom Right Panel -->
+  <div id="bottomRightPanel">
+    <div id="counterContainer">
+      <span id="counterLabel">NPC:</span>
+      <span id="counterValue">0</span>
+    </div>
+    <button id="fullscreenToggle">[O]</button>
+  </div>
+
+  <!-- Vertical Slider -->
+  <input type="range" id="verticalSlider" min="-50" max="50" value="0">
+
+  <!-- Three.js & SimplexNoise -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/simplex-noise@2.4.0/simplex-noise.min.js"></script>
+
+  <script>
+    // -- GLOBAL SETUP & VARIABLES --
+    let scene, camera, renderer, worldGroup;
+    let terrain, water, waterMaterial;
+    const baseTerrainSize = 50;
+    let terrainSizeFactor = 1, waterLevel = 2, heightScale = 10;
+    const heightOffset = 3;
+    let pointiness = 1.0, timeOfDay = 12;
+    let fallingObjects = [], npcs = [], gameMode = "roam";
+    const globalSimplex = new SimplexNoise();
+    let wireframeEnabled = false, objectScale = 1.0, waveScale = 1.0;
+    let zoomLevel = 70.71, currentTime = 0;
+    let cameraMode = "none", cameraFollowNPC = null;
+    let camRotX = Math.PI/4, camRotY = 0;
+
+    scene = new THREE.Scene();
+    worldGroup = new THREE.Group();
+    scene.add(worldGroup);
+
+    // Environment map (skybox)
+    const cubeTextureLoader = new THREE.CubeTextureLoader();
+    const envMap = cubeTextureLoader.load([
+      'https://threejs.org/examples/textures/cube/skybox/px.jpg',
+      'https://threejs.org/examples/textures/cube/skybox/nx.jpg',
+      'https://threejs.org/examples/textures/cube/skybox/py.jpg',
+      'https://threejs.org/examples/textures/cube/skybox/ny.jpg',
+      'https://threejs.org/examples/textures/cube/skybox/pz.jpg',
+      'https://threejs.org/examples/textures/cube/skybox/nz.jpg'
+    ]);
+    scene.background = envMap;
+
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    updateCamera();
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    function getEffectiveTerrainSize() {
+      return baseTerrainSize * terrainSizeFactor;
+    }
+
+    function updateCamera() {
+      const radius = zoomLevel;
+      camRotX = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, camRotX));
+      camera.position.x = radius * Math.cos(camRotX) * Math.sin(camRotY);
+      camera.position.y = radius * Math.sin(camRotX);
+      camera.position.z = radius * Math.cos(camRotX) * Math.cos(camRotY);
+      camera.lookAt(0, 0, 0);
+    }
+
+    // LIGHTING
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(50, 50, 50);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.set(1024, 1024);
+    directionalLight.shadow.camera.near = 0.5;
+    directionalLight.shadow.camera.far = 100;
+    scene.add(directionalLight);
+
+    function updateLighting() {
+      let brightness = Math.max(0, Math.sin((timeOfDay/24) * Math.PI));
+      directionalLight.intensity = brightness;
+      const lightColor = new THREE.Color().setHSL(0.1, 0.5, 0.5 * brightness + 0.2);
+      directionalLight.color = lightColor;
+      ambientLight.intensity = 0.3 * brightness + 0.1;
+    }
+    updateLighting();
+
+    // TERRAIN GENERATION
+    function generateTerrain(customSize) {
+      const size = customSize || getEffectiveTerrainSize();
+      const segments = 200;
+      let geom = new THREE.PlaneGeometry(size, size, segments, segments);
+      geom.rotateX(-Math.PI / 2);
+
+      const pos = geom.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), z = pos.getZ(i);
+        const raw = globalSimplex.noise2D(x * 0.08, z * 0.08);
+        const norm = (raw + 1) / 2;
+        const adj = (pointiness <= 1)
+          ? (0.5 + (norm - 0.5) * pointiness)
+          : Math.pow(norm, pointiness);
+        const y = adj * (heightScale * 2) - heightScale + heightOffset;
+        pos.setY(i, y);
+      }
+      pos.needsUpdate = true;
+      geom.computeVertexNormals();
+
+      const minY = heightOffset - heightScale, maxY = heightOffset + heightScale;
+      const colors = [];
+      for (let i = 0; i < pos.count; i++) {
+        const y = pos.getY(i);
+        const t = (y - minY) / (maxY - minY);
+        const col = new THREE.Color(0xD2B48C).lerp(new THREE.Color(0x228B22), t);
+        colors.push(col.r, col.g, col.b);
+      }
+      geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+      const mat = new THREE.MeshLambertMaterial({
+        vertexColors: true, flatShading: true, wireframe: wireframeEnabled
+      });
+      if (terrain) worldGroup.remove(terrain);
+      terrain = new THREE.Mesh(geom, mat);
+      terrain.receiveShadow = true;
+      worldGroup.add(terrain);
+    }
+    generateTerrain();
+
+    // WATER
+    function addWater(customSize) {
+      const size = customSize || getEffectiveTerrainSize();
+      const geom = new THREE.PlaneGeometry(size * 0.95, size * 0.95, 20, 20);
+      geom.rotateX(-Math.PI / 2);
+      geom.userData.originalPositions = geom.attributes.position.array.slice();
+
+      waterMaterial = new THREE.MeshPhongMaterial({
+        color: 0x4060ff,
+        transparent: true,
+        opacity: 0.6,
+        shininess: 150,
+        specular: 0x999999,
+        envMap: envMap,
+        combine: THREE.MixOperation,
+        reflectivity: 0.5,
+        wireframe: wireframeEnabled
+      });
+
+      if (water) worldGroup.remove(water);
+      water = new THREE.Mesh(geom, waterMaterial);
+      water.position.y = waterLevel;
+      water.receiveShadow = true;
+      water.castShadow = true;
+      worldGroup.add(water);
+    }
+    addWater();
+
+    function animateWater(time) {
+      if (!water) return;
+      const geom = water.geometry;
+      const pos = geom.attributes.position;
+      const orig = geom.userData.originalPositions;
+      for (let i = 0; i < pos.count; i++) {
+        const ix = i * 3;
+        const x = orig[ix], z = orig[ix + 2];
+        const wave = Math.sin(x * (2 * waveScale) + time * 0.002) * (0.15 * waveScale)
+                   + Math.cos(z * (2 * waveScale) + time * 0.002) * (0.15 * waveScale);
+        pos.array[ix + 1] = wave;
+      }
+      pos.needsUpdate = true;
+      geom.computeVertexNormals();
+    }
+    function getWaterWaveHeight(x, z, t) {
+      return waterLevel
+           + Math.sin(x * (2 * waveScale) + t * 0.002) * (0.15 * waveScale)
+           + Math.cos(z * (2 * waveScale) + t * 0.002) * (0.15 * waveScale);
+    }
+
+    function adjustTerrainSize() {
+      const newSize = getEffectiveTerrainSize();
+      generateTerrain(newSize);
+      addWater(newSize);
+      changeWaterTexture(document.getElementById("waterTexture").value);
+    }
+
+    // CAMERA ORBIT CONTROLS
+    const canvasEl = renderer.domElement;
+    let isDraggingCamera = false;
+    const previousPointer = { x: 0, y: 0 };
+
+    canvasEl.addEventListener('mousedown', e => {
+      if (!selectedObject) {
+        isDraggingCamera = true;
+        previousPointer.x = e.clientX; previousPointer.y = e.clientY;
+      }
+    });
+    canvasEl.addEventListener('mousemove', e => {
+      if (!isDraggingCamera || selectedObject) return;
+      const dx = e.clientX - previousPointer.x;
+      const dy = e.clientY - previousPointer.y;
+      previousPointer.x = e.clientX; previousPointer.y = e.clientY;
+      camRotY -= dx * 0.005;
+      camRotX += dy * 0.005;
+      updateCamera();
+    });
+    canvasEl.addEventListener('mouseup', () => { isDraggingCamera = false; });
+    canvasEl.addEventListener('mouseleave', () => { isDraggingCamera = false; });
+
+    canvasEl.addEventListener('touchstart', e => {
+      if (e.touches.length === 1 && !selectedObject) {
+        isDraggingCamera = true;
+        previousPointer.x = e.touches[0].clientX;
+        previousPointer.y = e.touches[0].clientY;
+      }
+    });
+    canvasEl.addEventListener('touchmove', e => {
+      if (!isDraggingCamera || selectedObject) return;
+      if (e.touches.length === 1) {
+        const dx = e.touches[0].clientX - previousPointer.x;
+        const dy = e.touches[0].clientY - previousPointer.y;
+        previousPointer.x = e.touches[0].clientX;
+        previousPointer.y = e.touches[0].clientY;
+        camRotY -= dx * 0.005;
+        camRotX += dy * 0.005;
+        updateCamera();
+        e.preventDefault();
+      }
+    }, { passive: false });
+    canvasEl.addEventListener('touchend', () => { isDraggingCamera = false; });
+
+    // DRAG & DROP OBJECTS
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let selectedObject = null;
+    const verticalSlider = document.getElementById("verticalSlider");
+    let dragOffset = new THREE.Vector3();
+
+    function onPointerDown(event) {
+      const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+      const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+      mouse.x = (clientX / window.innerWidth) * 2 - 1;
+      mouse.y = - (clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(fallingObjects.map(o => o.mesh));
+      if (intersects.length > 0) {
+        selectedObject = intersects[0].object;
+        selectedObject.material.emissive = new THREE.Color(0x333333);
+        const point = intersects[0].point;
+        dragOffset.copy(selectedObject.position).sub(point);
+        selectedObject.userData.initialY = selectedObject.position.y;
+        verticalSlider.value = 0;
+        verticalSlider.style.display = "block";
+        const entry = fallingObjects.find(o => o.mesh === selectedObject);
+        if (entry) entry.velocity.set(0, 0);
+        event.stopPropagation();
+      }
+    }
+
+    function onPointerMove(event) {
+      if (!selectedObject) return;
+      const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+      const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+      mouse.x = (clientX / window.innerWidth) * 2 - 1;
+      mouse.y = - (clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const t = (selectedObject.userData.initialY - raycaster.ray.origin.y) / raycaster.ray.direction.y;
+      const point = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(t));
+      selectedObject.position.x = point.x + dragOffset.x;
+      selectedObject.position.z = point.z + dragOffset.z;
+      const sliderOffset = parseFloat(verticalSlider.value);
+      selectedObject.position.y = selectedObject.userData.initialY + sliderOffset;
+      event.stopPropagation();
+    }
+
+    function onPointerUp(event) {
+      if (selectedObject) {
+        selectedObject.material.emissive = new THREE.Color(0x000000);
+        selectedObject = null;
+        verticalSlider.style.display = "none";
+      }
+    }
+
+    renderer.domElement.addEventListener('mousedown', onPointerDown, false);
+    renderer.domElement.addEventListener('mousemove', onPointerMove, false);
+    renderer.domElement.addEventListener('mouseup', onPointerUp, false);
+    renderer.domElement.addEventListener('touchstart', onPointerDown, false);
+    renderer.domElement.addEventListener('touchmove', onPointerMove, false);
+    renderer.domElement.addEventListener('touchend', onPointerUp, false);
+
+    window.addEventListener('keydown', e => {
+      if (selectedObject) {
+        if (e.key === "ArrowUp") selectedObject.position.y += 0.5;
+        if (e.key === "ArrowDown") selectedObject.position.y -= 0.5;
+      }
+    });
+
+    verticalSlider.addEventListener('input', function() {
+      if (selectedObject) {
+        selectedObject.position.y = selectedObject.userData.initialY + parseFloat(this.value);
+      }
+    });
+
+    // UTIL: hold‑button listener
+    function addHoldButtonListener(btn, action) {
+      let interval = null;
+      btn.addEventListener('mousedown', e => {
+        action();
+        interval = setInterval(action, 30);
+        e.preventDefault();
+      });
+      btn.addEventListener('mouseup', () => clearInterval(interval));
+      btn.addEventListener('mouseleave', () => clearInterval(interval));
+      btn.addEventListener('touchstart', e => {
+        action();
+        interval = setInterval(action, 30);
+        e.preventDefault();
+      }, { passive: false });
+      btn.addEventListener('touchend', () => clearInterval(interval));
+      btn.addEventListener('touchcancel', () => clearInterval(interval));
+    }
+
+    // --- CONTROLS SETUP ---
+
+    // Land size
+    addHoldButtonListener(document.getElementById("landPlus"), () => {
+      terrainSizeFactor = Math.min(3, terrainSizeFactor + 0.05);
+      adjustTerrainSize();
+    });
+    addHoldButtonListener(document.getElementById("landMinus"), () => {
+      terrainSizeFactor = Math.max(0.5, terrainSizeFactor - 0.05);
+      adjustTerrainSize();
+    });
+
+    // Noise / pointiness
+    function adjustPointiness(delta) {
+      pointiness = Math.max(0, Math.min(5, pointiness + delta));
+      generateTerrain(getEffectiveTerrainSize());
+    }
+    addHoldButtonListener(document.getElementById("noisePlus"), () => adjustPointiness(0.2));
+    addHoldButtonListener(document.getElementById("noiseMinus"), () => adjustPointiness(-0.2));
+
+    // Water level
+    addHoldButtonListener(document.getElementById("waterLevelPlus"), () => {
+      waterLevel += 0.5;
+      if (water) water.position.y = waterLevel;
+    });
+    addHoldButtonListener(document.getElementById("waterLevelMinus"), () => {
+      waterLevel -= 0.5;
+      if (water) water.position.y = waterLevel;
+    });
+
+    // Wave scale
+    addHoldButtonListener(document.getElementById("wavePlus"), () => {
+      waveScale = Math.min(5, waveScale + 0.1);
+    });
+    addHoldButtonListener(document.getElementById("waveMinus"), () => {
+      waveScale = Math.max(0.1, waveScale - 0.1);
+    });
+
+    // Object scale
+    addHoldButtonListener(document.getElementById("objScalePlus"), () => {
+      objectScale = Math.min(3, objectScale + 0.1);
+    });
+    addHoldButtonListener(document.getElementById("objScaleMinus"), () => {
+      objectScale = Math.max(0.1, objectScale - 0.1);
+    });
+
+    // Bounce / damping
+    let groundBounceFactor = 0.2;
+    addHoldButtonListener(document.getElementById("bouncePlus"), () => {
+      groundBounceFactor = Math.min(1, groundBounceFactor + 0.02);
+    });
+    addHoldButtonListener(document.getElementById("bounceMinus"), () => {
+      groundBounceFactor = Math.max(0, groundBounceFactor - 0.02);
+    });
+
+    let waterDampingFactor = 0.9;
+    addHoldButtonListener(document.getElementById("dampingPlus"), () => {
+      waterDampingFactor = Math.min(1, waterDampingFactor + 0.02);
+    });
+    addHoldButtonListener(document.getElementById("dampingMinus"), () => {
+      waterDampingFactor = Math.max(0, waterDampingFactor - 0.02);
+    });
+
+    // Zoom
+    addHoldButtonListener(document.getElementById("zoomPlus"), () => {
+      zoomLevel = Math.max(20, zoomLevel - 0.5);
+      updateCamera();
+    });
+    addHoldButtonListener(document.getElementById("zoomMinus"), () => {
+      zoomLevel = Math.min(80, zoomLevel + 0.5);
+      updateCamera();
+    });
+
+    // Add falling objects
+    let addObjInterval = null;
+    const addFallingBtn = document.getElementById("addFalling");
+    addFallingBtn.addEventListener('mousedown', e => {
+      addFallingObject();
+      addObjInterval = setInterval(addFallingObject, 30);
+      e.preventDefault();
+    });
+    addFallingBtn.addEventListener('mouseup', () => clearInterval(addObjInterval));
+    addFallingBtn.addEventListener('mouseleave', () => clearInterval(addObjInterval));
+    addFallingBtn.addEventListener('touchstart', e => {
+      addFallingObject();
+      addObjInterval = setInterval(addFallingObject, 30);
+      e.preventDefault();
+    }, { passive: false });
+    addFallingBtn.addEventListener('touchend', () => clearInterval(addObjInterval));
+
+    function addFallingObject() {
+      const shape = Math.floor(Math.random() * 3);
+      let geom;
+      if (shape === 0) geom = new THREE.BoxGeometry(objectScale, objectScale, objectScale);
+      else if (shape === 1) geom = new THREE.SphereGeometry(objectScale * 0.5, 16, 16);
+      else geom = new THREE.ConeGeometry(objectScale * 0.5, objectScale, 16);
+
+      const mat = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      const size = getEffectiveTerrainSize() * 0.5;
+      const x = THREE.MathUtils.randFloatSpread(size);
+      const z = THREE.MathUtils.randFloatSpread(size);
+      mesh.position.set(x, 50, z);
+      mesh.userData.spawnScale = objectScale;
+      const velocity = new THREE.Vector3();
+      fallingObjects.push({ mesh, velocity });
+      worldGroup.add(mesh);
+    }
+
+    // Time toggle
+    addHoldButtonListener(document.getElementById("timeToggle"), () => {
+      timeOfDay = (timeOfDay + 0.5) % 24;
+      updateLighting();
+    });
+
+    // Water texture change
+    let rainbowInterval = null;
+    function changeWaterTexture(type) {
+      if (rainbowInterval) {
+        clearInterval(rainbowInterval);
+        rainbowInterval = null;
+      }
+      waterMaterial.specular.set(0x999999);
+      waterMaterial.opacity = 0.6;
+      switch (type) {
+        case 'lava':
+          waterMaterial.color.set(0xff4000);
+          waterMaterial.opacity = 0.8;
+          break;
+        case 'ice':
+          waterMaterial.color.set(0x80d0ff);
+          waterMaterial.opacity = 0.5;
+          break;
+        case 'rainbow':
+          const colors = [0xff0000, 0xff8000, 0xffff00, 0x00ff00, 0x0000ff, 0x8000ff];
+          let idx = 0;
+          rainbowInterval = setInterval(() => {
+            waterMaterial.color.set(colors[idx]);
+            idx = (idx + 1) % colors.length;
+          }, 500);
+          break;
+        case 'red':    waterMaterial.color.set(0xff0000); break;
+        case 'orange': waterMaterial.color.set(0xff8000); break;
+        case 'yellow': waterMaterial.color.set(0xffff00); break;
+        case 'green':  waterMaterial.color.set(0x00ff00); break;
+        case 'blue':   waterMaterial.color.set(0x0000ff); break;
+        case 'purple': waterMaterial.color.set(0x8000ff); break;
+        default:
+          waterMaterial.color.set(0x4060ff);
+      }
+    }
+    document.getElementById("waterTexture").addEventListener("change", function() {
+      changeWaterTexture(this.value);
+    });
+
+    // Wireframe toggle
+    document.getElementById("wireframeToggle").addEventListener("click", () => {
+      wireframeEnabled = !wireframeEnabled;
+      if (terrain) terrain.material.wireframe = wireframeEnabled;
+      if (water) water.material.wireframe = wireframeEnabled;
+    });
+
+    // Generate city
+    document.getElementById("generateCity").addEventListener("click", generateCity);
+    function generateCity() {
+      const old = worldGroup.getObjectByName("cityGroup");
+      if (old) worldGroup.remove(old);
+      const cityGroup = new THREE.Group();
+      cityGroup.name = "cityGroup";
+      const size = getEffectiveTerrainSize() * 0.5;
+      for (let i = 0; i < 20; i++) {
+        const w = THREE.MathUtils.randFloat(1, 4);
+        const d = THREE.MathUtils.randFloat(1, 4);
+        const h = THREE.MathUtils.randFloat(4, 16);
+        const geom = new THREE.BoxGeometry(w, h, d);
+        const mat = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
+        const building = new THREE.Mesh(geom, mat);
+        building.castShadow = true; building.receiveShadow = true;
+        let x = THREE.MathUtils.randFloatSpread(size);
+        let z = THREE.MathUtils.randFloatSpread(size);
+        let baseY = getTerrainHeight(x, z);
+        if (baseY < waterLevel + 0.5) baseY = waterLevel + 0.5;
+        building.position.set(x, baseY + h / 2, z);
+        cityGroup.add(building);
+      }
+      worldGroup.add(cityGroup);
+    }
+
+    // HEAD & CHARACTER MESH
+    function createHeadTexture() {
+      const size = 256;
+      const canvasTex = document.createElement('canvas');
+      canvasTex.width = canvasTex.height = size;
+      const ctx = canvasTex.getContext('2d');
+
+      // skin
+      ctx.fillStyle = "peachpuff";
+      ctx.fillRect(0, 0, size, size);
+
+      // hair
+      ctx.fillStyle = "#654321";
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(size, 0);
+      ctx.lineTo(size, size * 0.15);
+      ctx.lineTo(size * 0.5, size * 0.25);
+      ctx.lineTo(0, size * 0.15);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(0, size * 0.15);
+      ctx.lineTo(size * 0.5, size * 0.35);
+      ctx.lineTo(size, size * 0.15);
+      ctx.closePath();
+      ctx.fill();
+
+      // eyes
+      ctx.fillStyle = "black";
+      const eyeY = size * 0.42;
+      ctx.beginPath();
+      ctx.arc(size * 0.45, eyeY, 8, 0, Math.PI * 2);
+      ctx.arc(size * 0.55, eyeY, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // nose
+      ctx.fillStyle = "#d2a679";
+      ctx.beginPath();
+      ctx.moveTo(size * 0.48, eyeY + 6);
+      ctx.lineTo(size * 0.52, eyeY + 6);
+      ctx.lineTo(size * 0.50, eyeY + 18);
+      ctx.closePath();
+      ctx.fill();
+
+      // nose line
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(size * 0.52, eyeY + 6);
+      ctx.lineTo(size * 0.50, eyeY + 18);
+      ctx.stroke();
+
+      // mouth
+      ctx.lineWidth = 3;
+      const mouthY = eyeY + 28;
+      ctx.beginPath();
+      ctx.moveTo(size * 0.46, mouthY);
+      ctx.lineTo(size * 0.54, mouthY);
+      ctx.stroke();
+
+      const tex = new THREE.CanvasTexture(canvasTex);
+      tex.center.set(0.5, 0.5);
+      tex.rotation = 0;
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    function buildCharacterMesh() {
+      const group = new THREE.Group();
+
+      const waistGeo = new THREE.BoxGeometry(0.4, 0.4, 0.25);
+      const waistMat = new THREE.MeshLambertMaterial({ color: 0x664422 });
+      const waist = new THREE.Mesh(waistGeo, waistMat);
+      waist.castShadow = true; waist.receiveShadow = true;
+      waist.position.set(0, 0.2, 0);
+      group.add(waist);
+
+      const torsoGeo = new THREE.BoxGeometry(0.5, 0.6, 0.3);
+      const torsoMat = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
+      const torso = new THREE.Mesh(torsoGeo, torsoMat);
+      torso.castShadow = true; torso.receiveShadow = true;
+      torso.position.set(0, 0.7, 0);
+      group.add(torso);
+
+      const headGeo = new THREE.SphereGeometry(0.2, 16, 16);
+      const headMat = new THREE.MeshLambertMaterial({ map: createHeadTexture() });
+      const head = new THREE.Mesh(headGeo, headMat);
+      head.castShadow = true; head.receiveShadow = true;
+      head.position.set(0, 1.2, 0);
+      head.rotation.y = -Math.PI/2;
+      group.add(head);
+
+      return group;
+    }
+
+    // ADD NPC BUTTON
+    addHoldButtonListener(document.getElementById("addNPC"), () => addNPC());
+    function addNPC() {
+      const npc = buildCharacterMesh();
+      const size = getEffectiveTerrainSize() * 0.8;
+      const x = THREE.MathUtils.randFloatSpread(size);
+      const z = THREE.MathUtils.randFloatSpread(size);
+      const y = getTerrainHeight(x, z);
+      npc.position.set(x, y, z);
+
+      npc.userData = {
+        speed: THREE.MathUtils.randFloat(0.5, 1.2),
+        bobFactor: THREE.MathUtils.randFloat(0.8, 1.2),
+        direction: new THREE.Vector3(
+          THREE.MathUtils.randFloatSpread(1),
+          0,
+          THREE.MathUtils.randFloatSpread(1)
+        ).normalize(),
+        velocity: new THREE.Vector3(),
+        hitsTaken: 0,
+        lastHitTime: 0,
+        team: npc.children[1].material.color.getHex()
+      };
+
+      // sword for DM / TDM
+      if (gameMode === "dm" || gameMode === "tdm") {
+        if (!npc.getObjectByName("sword")) {
+          const swordGeo = new THREE.BoxGeometry(0.1, 0.5, 0.05);
+          const swordMat = new THREE.MeshLambertMaterial({ color: 0x808080 });
+          const sword = new THREE.Mesh(swordGeo, swordMat);
+          sword.name = "sword";
+          sword.castShadow = true; sword.receiveShadow = true;
+          sword.position.set(0, 0.8, 0.4);
+          npc.add(sword);
+        }
+      }
+
+      npcs.push(npc);
+      worldGroup.add(npc);
+    }
+
+    // GAME MODE CHANGE
+    document.getElementById("gameModeSelect").addEventListener("change", function() {
+      gameMode = this.value;
+      if (gameMode === "dm" || gameMode === "tdm") {
+        for (let npc of npcs) {
+          if (!npc.getObjectByName("sword")) {
+            const swordGeo = new THREE.BoxGeometry(0.1, 0.5, 0.05);
+            const swordMat = new THREE.MeshLambertMaterial({ color: 0x808080 });
+            const sword = new THREE.Mesh(swordGeo, swordMat);
+            sword.name = "sword";
+            sword.castShadow = true; sword.receiveShadow = true;
+            sword.position.set(0, 0.8, 0.4);
+            npc.add(sword);
+          }
+        }
+      }
+    });
+
+    // TERRAIN HEIGHT FUNCTION
+    function getTerrainHeight(x, z) {
+      const raw = globalSimplex.noise2D(x * 0.08, z * 0.08);
+      const norm = (raw + 1) / 2;
+      const adj = (pointiness <= 1)
+        ? (0.5 + (norm - 0.5) * pointiness)
+        : Math.pow(norm, pointiness);
+      return adj * (heightScale * 2) - heightScale + heightOffset;
+    }
+
+    // --- NPCS UPDATE (with integrated water‐gradient steering) ---
+    function updateNPCs(delta) {
+      const size = getEffectiveTerrainSize();
+      const bounds = {
+        minX: -size/2 + 1, maxX: size/2 - 1,
+        minZ: -size/2 + 1, maxZ: size/2 - 1
+      };
+
+      for (let npc of npcs) {
+        // Movement logic by mode
+        if (gameMode === "roam") {
+          npc.userData.speed *= (0.99 + Math.random() * 0.02);
+          if (Math.random() < 0.03) {
+            npc.userData.direction.add(new THREE.Vector3(
+              THREE.MathUtils.randFloatSpread(0.2),
+              0,
+              THREE.MathUtils.randFloatSpread(0.2)
+            )).normalize();
+          }
+        } else {
+          // DM or TDM: chase targets
+          let target = null, bestDist = Infinity;
+          for (let other of npcs) {
+            if (other === npc) continue;
+            if (gameMode === "tdm" && npc.userData.team === other.userData.team) continue;
+            const d = npc.position.distanceTo(other.position);
+            if (d < bestDist) { bestDist = d; target = other; }
+          }
+          if (target) {
+            const dirTo = target.position.clone().sub(npc.position).normalize();
+            npc.userData.direction.lerp(dirTo, 0.1).normalize();
+
+            // register hits
+            if (bestDist < 1.0 &&
+                (!npc.userData.lastHitTime ||
+                 (currentTime - npc.userData.lastHitTime > 1000))) {
+              target.userData.hitsTaken++;
+              npc.userData.lastHitTime = currentTime;
+              npc.position.y += 0.05 * Math.sin(currentTime * 0.005);
+              if (target.userData.hitsTaken >= 3) {
+                worldGroup.remove(target);
+                npcs.splice(npcs.indexOf(target), 1);
+              }
+            }
+          }
+        }
+
+        // compute new position
+        let moveDist = npc.userData.speed * delta;
+        let newX = npc.position.x + npc.userData.direction.x * moveDist;
+        let newZ = npc.position.z + npc.userData.direction.z * moveDist;
+
+        // clamp to bounds
+        if (newX < bounds.minX) { newX = bounds.minX; npc.userData.direction.x = Math.abs(npc.userData.direction.x); }
+        if (newX > bounds.maxX) { newX = bounds.maxX; npc.userData.direction.x = -Math.abs(npc.userData.direction.x); }
+        if (newZ < bounds.minZ) { newZ = bounds.minZ; npc.userData.direction.z = Math.abs(npc.userData.direction.z); }
+        if (newZ > bounds.maxZ) { newZ = bounds.maxZ; npc.userData.direction.z = -Math.abs(npc.userData.direction.z); }
+
+        // check water
+        const terrY = getTerrainHeight(newX, newZ);
+        const inWater = terrY < waterLevel;
+        if (inWater) {
+          // compute gradient around current pos
+          const eps = 0.2;
+          const hX1 = getTerrainHeight(npc.position.x + eps, npc.position.z);
+          const hX2 = getTerrainHeight(npc.position.x - eps, npc.position.z);
+          const hZ1 = getTerrainHeight(npc.position.x, npc.position.z + eps);
+          const hZ2 = getTerrainHeight(npc.position.x, npc.position.z - eps);
+          const gradX = hX1 - hX2, gradZ = hZ1 - hZ2;
+          const gradient = new THREE.Vector3(gradX, 0, gradZ);
+          if (gradient.lengthSq() > 1e-4) {
+            gradient.normalize();
+            npc.userData.direction.lerp(gradient, 0.1).normalize();
+          }
+        }
+
+        // apply final position & height
+        let finalY = inWater
+                   ? waterLevel + THREE.MathUtils.clamp(getWaterWaveHeight(newX, newZ, currentTime) - waterLevel, -0.05, 0.1) - 0.5
+                   : getTerrainHeight(newX, newZ);
+        npc.position.set(newX, finalY, newZ);
+
+        // rotate to face movement
+        npc.rotation.set(0,
+          Math.atan2(npc.userData.direction.x, npc.userData.direction.z),
+          0
+        );
+
+        // sword bob in TDM
+        if (gameMode === "tdm") {
+          const sword = npc.getObjectByName("sword");
+          if (sword) sword.rotation.y = Math.sin(currentTime * 0.005) * 0.5;
+        }
+      }
+
+      // NPC separation
+      for (let i = 0; i < npcs.length; i++) {
+        for (let j = i+1; j < npcs.length; j++) {
+          const A = npcs[i], B = npcs[j];
+          const dx = B.position.x - A.position.x;
+          const dz = B.position.z - A.position.z;
+          const dist = Math.hypot(dx, dz);
+          const minD = 0.5;
+          if (dist < minD && dist > 0) {
+            const overlap = (minD - dist) / 2;
+            const pushX = dx/dist * overlap;
+            const pushZ = dz/dist * overlap;
+            A.position.x -= pushX; A.position.z -= pushZ;
+            B.position.x += pushX; B.position.z += pushZ;
+            A.userData.direction.add(new THREE.Vector3(-pushX, 0, -pushZ)).normalize();
+            B.userData.direction.add(new THREE.Vector3(pushX, 0, pushZ)).normalize();
+          }
+        }
+      }
+    }
+
+    // FALLING OBJECTS UPDATE
+    function updateFallingObjects(delta, t) {
+      const half = getEffectiveTerrainSize() / 2;
+      for (let i = fallingObjects.length - 1; i >= 0; i--) {
+        const obj = fallingObjects[i];
+        obj.velocity.y -= 9.8 * 1.5 * delta;
+        const radius = (obj.mesh.userData.spawnScale || objectScale) / 2;
+
+        // buoyancy
+        if (obj.mesh.position.y < waterLevel + radius) {
+          const buoy = (waterLevel + radius - obj.mesh.position.y) * 2.5;
+          obj.velocity.y += buoy;
+          obj.velocity.y *= waterDampingFactor;
+        }
+
+        obj.mesh.position.y += obj.velocity.y * delta;
+
+        // terrain collision
+        const gh = getTerrainHeight(obj.mesh.position.x, obj.mesh.position.z);
+        if (obj.mesh.position.y < gh + radius) {
+          obj.mesh.position.y = gh + radius;
+          obj.velocity.y = -obj.velocity.y * groundBounceFactor;
+          if (Math.abs(obj.velocity.y) < 0.5) obj.velocity.y = 0;
+        }
+
+        // clamp horizontal
+        obj.mesh.position.x = THREE.MathUtils.clamp(obj.mesh.position.x, -half, half);
+        obj.mesh.position.z = THREE.MathUtils.clamp(obj.mesh.position.z, -half, half);
+      }
+    }
+
+    // COLLISIONS (city, NPC–object, object–object)
+    function updateCollisions() {
+      const city = worldGroup.getObjectByName("cityGroup");
+      if (city) {
+        // NPC vs buildings
+        for (let npc of npcs) {
+          const npcBox = new THREE.Box3().setFromObject(npc);
+          for (let b of city.children) {
+            const bBox = new THREE.Box3().setFromObject(b);
+            if (npcBox.intersectsBox(bBox)) {
+              const center = new THREE.Vector3();
+              bBox.getCenter(center);
+              const push = npc.position.clone().sub(center).normalize().multiplyScalar(0.03);
+              npc.position.add(push);
+              npc.userData.direction.add(push).normalize();
+            }
+          }
+        }
+      }
+
+      // NPC vs falling objects
+      for (let { mesh } of fallingObjects) {
+        const objBox = new THREE.Box3().setFromObject(mesh);
+        for (let npc of npcs) {
+          const npcBox = new THREE.Box3().setFromObject(npc);
+          if (objBox.intersectsBox(npcBox)) {
+            const co = new THREE.Vector3(), cn = new THREE.Vector3();
+            objBox.getCenter(co);
+            npcBox.getCenter(cn);
+            const push = cn.sub(co).normalize().multiplyScalar(0.1);
+            npc.position.add(push);
+            mesh.position.add(push.clone().multiplyScalar(-1));
+          }
+        }
+      }
+
+      // object–object
+      for (let i = 0; i < fallingObjects.length; i++) {
+        for (let j = i+1; j < fallingObjects.length; j++) {
+          const A = new THREE.Box3().setFromObject(fallingObjects[i].mesh);
+          const B = new THREE.Box3().setFromObject(fallingObjects[j].mesh);
+          if (A.intersectsBox(B)) {
+            const cA = new THREE.Vector3(), cB = new THREE.Vector3();
+            A.getCenter(cA);
+            B.getCenter(cB);
+            const push = cA.sub(cB).normalize().multiplyScalar(0.1);
+            fallingObjects[i].mesh.position.add(push);
+            fallingObjects[j].mesh.position.add(push.clone().multiplyScalar(-1));
+          }
+        }
+      }
+
+      // falling objects vs city
+      if (city) {
+        for (let obj of fallingObjects) {
+          const oBox = new THREE.Box3().setFromObject(obj.mesh);
+          for (let b of city.children) {
+            const bBox = new THREE.Box3().setFromObject(b);
+            if (oBox.intersectsBox(bBox)) {
+              const co = new THREE.Vector3(), cb = new THREE.Vector3();
+              oBox.getCenter(co);
+              bBox.getCenter(cb);
+              const push = co.sub(cb).normalize().multiplyScalar(0.03);
+              obj.mesh.position.add(push);
+              obj.velocity.y = 0;
+            }
+          }
+        }
+      }
+    }
+
+    // POV mode
+    document.getElementById("povSelect").addEventListener("change", function() {
+      if (this.value === "Pov") {
+        cameraMode = "pov";
+        if (npcs.length > 0) {
+          cameraFollowNPC = npcs[Math.floor(Math.random() * npcs.length)];
+        }
+      } else {
+        cameraMode = "none";
+        cameraFollowNPC = null;
+        updateCamera();
+      }
+    });
+
+    // Fullscreen toggle
+    const fullscreenToggle = document.getElementById("fullscreenToggle");
+    fullscreenToggle.addEventListener("click", () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.() ||
+        document.documentElement.mozRequestFullScreen?.() ||
+        document.documentElement.webkitRequestFullscreen?.();
+        fullscreenToggle.textContent = "[X]";
+      } else {
+        document.exitFullscreen?.() ||
+        document.mozCancelFullScreen?.() ||
+        document.webkitExitFullscreen?.();
+        fullscreenToggle.textContent = "[O]";
+      }
+    });
+
+    // Counter switch
+    let counterMode = "NPC";
+    const counterLabel = document.getElementById("counterLabel");
+    const counterValue = document.getElementById("counterValue");
+    function updateCounter() {
+      if (counterMode === "NPC") {
+        counterLabel.textContent = "NPC:";
+        counterValue.textContent = npcs.length;
+      } else {
+        counterLabel.textContent = "OBJ:";
+        counterValue.textContent = fallingObjects.length;
+      }
+    }
+    document.getElementById("counterContainer").addEventListener("click", () => {
+      counterMode = (counterMode === "NPC") ? "OBJ" : "NPC";
+      updateCounter();
+    });
+
+    // ANIMATION LOOP
+    const clock = new THREE.Clock();
+    function animate(time) {
+      currentTime = time;
+      const delta = clock.getDelta();
+      animateWater(time);
+      updateFallingObjects(delta, currentTime);
+      updateNPCs(delta);
+      updateCollisions();
+      updateCounter();
+
+      if (cameraMode === "pov" && cameraFollowNPC) {
+        const headPos = cameraFollowNPC.position.clone();
+        headPos.y += 1.2;
+        camera.position.copy(headPos);
+        camera.lookAt(headPos.clone().add(cameraFollowNPC.userData.direction.clone().multiplyScalar(10)));
+      }
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // spawn an initial NPC
+    console.log("DEBUG: Spawning initial NPC on load.");
+    addNPC();
+  </script>
+</body>
+</html>
