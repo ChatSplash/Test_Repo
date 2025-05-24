@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PocketPixel DRIVER Game</title>
+  <style>
+    body { 
+      background: #ccc; 
+      font-family: sans-serif; 
+      margin: 0; 
+      padding: 20px; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    #gameboy {
+      width: 320px;
+      height: 560px;
+      background: #999;
+      border: 5px solid #666;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #screen {
+      width: 320px;
+      height: 240px;
+      background: #000; 
+      border: 4px solid #333;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+      width: 320px;
+      height: 240px;
+    }
+    #pointsCounter {
+      position: absolute;
+      top: 5px;
+      right: 10px;
+      color: white;
+      font-size: 18px;
+      font-family: sans-serif;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+      z-index: 2;
+    }
+    /* The speedDial container now holds both the numeric speed and a speedometer gauge */
+    #speedDial {
+      position: absolute;
+      bottom: 5px;
+      right: 10px;
+      z-index: 2;
+      text-align: center;
+      color: white;
+      font-family: sans-serif;
+    }
+    /* Speedometer canvas styling */
+    #speedometer {
+      width: 50px;
+      height: 50px;
+      background: transparent;
+    }
+    /* D-pad and button styles unchanged */
+    #controls {
+      margin-top: 20px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #dpad {
+      width: 120px;
+      height: 120px;
+      position: relative;
+    }
+    .dpad-btn {
+      position: absolute;
+      background: #444;
+      color: #888;
+      width: 40px;
+      height: 40px;
+      line-height: 40px;
+      font-size: 20px;
+      text-align: center;
+      pointer-events: none;
+    }
+    #up {
+      top: 0;
+      left: 40px;
+      border-top: 1px solid #000;
+      border-left: 1px solid #000;
+      border-right: 1px solid #000;
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+      filter: drop-shadow(0 0 5px rgba(0,0,0,0.7));
+    }
+    #right {
+      top: 40px;
+      right: 0;
+      border-top: 1px solid #000;
+      border-right: 1px solid #000;
+      border-bottom: 1px solid #000;
+      border-top-right-radius: 6px;
+      border-bottom-right-radius: 6px;
+      filter: drop-shadow(0 0 5px rgba(0,0,0,0.7));
+    }
+    #down {
+      bottom: 0;
+      left: 40px;
+      border-bottom: 1px solid #000;
+      border-left: 1px solid #000;
+      border-right: 1px solid #000;
+      border-bottom-left-radius: 6px;
+      border-bottom-right-radius: 6px;
+      filter: drop-shadow(0 0 5px rgba(0,0,0,0.7));
+    }
+    #left {
+      top: 40px;
+      left: 0;
+      border-left: 1px solid #000;
+      border-top: 1px solid #000;
+      border-bottom: 1px solid #000;
+      border-top-left-radius: 6px;
+      border-bottom-left-radius: 6px;
+      filter: drop-shadow(0 0 5px rgba(0,0,0,0.7));
+    }
+    #center {
+      top: 40px;
+      left: 40px;
+      width: 40px;
+      height: 40px;
+      background: #444;
+      position: absolute;
+      border-radius: 0;
+    }
+    #center::after {
+      content: "\25CF";
+      color: #333;
+      font-size: 16px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    #up::after    { content: "\25B2\FE0E"; font-size: 18px; color: #333; }
+    #down::after  { content: "\25BC\FE0E"; font-size: 18px; color: #333; }
+    #left::after  { content: "\25C0\FE0E"; font-size: 18px; color: #333; }
+    #right::after { content: "\25B6\FE0E"; font-size: 18px; color: #333; }
+    #abButtons {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+    }
+    .action-button {
+      position: relative;
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(145deg, #a000a0, #800080);
+      border: 2px solid #6d006d;
+      border-radius: 50%;
+      color: #e0c0e0;
+      text-align: center;
+      line-height: 50px;
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.5);
+      overflow: hidden;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .action-button:active {
+      transform: translateY(2px);
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.7);
+    }
+    .action-button.pressed {
+      transform: translateY(2px);
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.7);
+    }
+    .action-button::before {
+      content: "";
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      width: 30px;
+      height: 30px;
+      background: radial-gradient(circle at top right, rgba(255,255,255,0.4), transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(20%, -20%);
+    }
+    #buttonA { margin-top: 12px; }
+    #selStartContainer {
+      margin-top: auto;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      width: 100%;
+    }
+    .sel-start-button {
+      width: 55px;
+      height: 20px;
+      background: linear-gradient(to top, #444 40%, #666 100%);
+      border: 1px solid #222;
+      border-radius: 10px;
+      color: #333;
+      text-align: center;
+      line-height: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .sel-start-button:active {
+      transform: translateY(1px);
+      box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <div id="gameboy">
+    <div id="screen">
+      <canvas id="gameScreen" width="320" height="240"></canvas>
+      <div id="pointsCounter"></div>
+      <!-- The speedDial now includes a visual speedometer and numeric speed -->
+      <div id="speedDial">
+        <canvas id="speedometer" width="50" height="50"></canvas>
+        <div id="speedText"></div>
+      </div>
+    </div>
+    <div id="controls">
+      <div id="dpad">
+        <div class="dpad-btn" id="up"></div>
+        <div class="dpad-btn" id="down"></div>
+        <div class="dpad-btn" id="left"></div>
+        <div class="dpad-btn" id="right"></div>
+        <div id="center"></div>
+      </div>
+      <div id="abButtons">
+        <div class="action-button" id="buttonA">A</div>
+        <div class="action-button" id="buttonB">B</div>
+      </div>
+    </div>
+    <div id="selStartContainer">
+      <div class="sel-start-button" id="buttonSel">SEL</div>
+      <div class="sel-start-button" id="buttonStart">START</div>
+    </div>
+  </div>
+  
+  <script>
+    // Canvas and UI setup
+    const canvas = document.getElementById('gameScreen');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+
+    let points = 0;
+    const pointsCounter = document.getElementById('pointsCounter');
+    const speedText = document.getElementById('speedText');
+    const speedometerCanvas = document.getElementById('speedometer');
+    const speedometerCtx = speedometerCanvas.getContext('2d');
+
+    // Draw numeric speed and gauge
+    const maxSpeedValue = 6; // max speed value
+    function drawSpeed() {
+      // Update numeric speed
+      speedText.textContent = currentSpeed.toFixed(1);
+      // Draw gauge: a simple arc with a needle.
+      speedometerCtx.clearRect(0, 0, speedometerCanvas.width, speedometerCanvas.height);
+      const cx = speedometerCanvas.width / 2;
+      const cy = speedometerCanvas.height / 2;
+      const radius = 20;
+      const startAngle = (135 * Math.PI) / 180;
+      const endAngle = (45 * Math.PI) / 180;
+      // Draw background arc
+      speedometerCtx.beginPath();
+      speedometerCtx.arc(cx, cy, radius, startAngle, endAngle, false);
+      speedometerCtx.strokeStyle = "#888";
+      speedometerCtx.lineWidth = 3;
+      speedometerCtx.stroke();
+      // Compute needle angle based on currentSpeed (clamped to maxSpeedValue)
+      let clampedSpeed = Math.min(currentSpeed, maxSpeedValue);
+      const needleAngle = startAngle - (clampedSpeed / maxSpeedValue) * (startAngle - endAngle);
+      // Draw needle
+      speedometerCtx.beginPath();
+      speedometerCtx.moveTo(cx, cy);
+      speedometerCtx.lineTo(cx + radius * Math.cos(needleAngle), cy - radius * Math.sin(needleAngle));
+      speedometerCtx.strokeStyle = "#FF0000";
+      speedometerCtx.lineWidth = 2;
+      speedometerCtx.stroke();
+    }
+
+    // Player car properties
+    let carX = W / 2;
+    let carY = H * 0.7;
+    const carWidth = 16;
+    const carHeight = 32;
+    let carColor = 'red';
+
+    // Road segments for background
+    let segments = [];
+    let generationStage = 0;
+    let ticksInStage = 0;
+    const SINGLE_LANE_WIDTH = 40;
+    const TARGET_ROAD_WIDTH = 160;
+    const SEGMENT_SPACING = 15;
+    let currentSpeed = 0;
+    let targetSpeed = 0;
+    const maxSpeed = 6;
+    const acceleration = 0.1;
+    let dashOffset = 0;
+
+    // Traffic cars array
+    let trafficCars = [];
+
+    // Returns the road segment covering a given y coordinate
+    function getSegmentAt(y) {
+      for (let seg of segments) {
+        if (y >= seg.topY && y < seg.topY + SEGMENT_SPACING) return seg;
+      }
+      return null;
+    }
+
+    // Initialize road segments
+    function initRoad() {
+      segments = [];
+      let leftX = W / 2 - SINGLE_LANE_WIDTH / 2;
+      let rightX = leftX + SINGLE_LANE_WIDTH;
+      for (let y = 0; y <= H; y += SEGMENT_SPACING) {
+        segments.push({ topY: y, leftX, rightX });
+      }
+    }
+
+    // Generate new road segments for scrolling
+    function generateSegment() {
+      let minY = Infinity, topSeg = null;
+      for (let seg of segments) {
+        if (seg.topY < minY) { minY = seg.topY; topSeg = seg; }
+      }
+      const newTopY = minY - SEGMENT_SPACING;
+      if (!topSeg) return;
+      let { leftX, rightX } = topSeg;
+      ticksInStage++;
+      if (generationStage === 0) {
+        if (ticksInStage > 40) { generationStage = 1; ticksInStage = 0; }
+      } else if (generationStage === 1) {
+        let mid = (leftX + rightX) / 2;
+        let progress = ticksInStage / 40;
+        if (progress > 1) progress = 1;
+        const targetLeftX = mid - TARGET_ROAD_WIDTH / 2;
+        const targetRightX = mid + TARGET_ROAD_WIDTH / 2;
+        leftX = leftX + progress * (targetLeftX - leftX);
+        rightX = rightX + progress * (targetRightX - rightX);
+        if (progress >= 1) { generationStage = 2; ticksInStage = 0; }
+      } else {
+        let mid = (leftX + rightX) / 2;
+        let shift = (Math.random() - 0.5) * 6;
+        mid += shift;
+        if (mid < 10 + TARGET_ROAD_WIDTH / 2) mid = 10 + TARGET_ROAD_WIDTH / 2;
+        if (mid > W - 10 - TARGET_ROAD_WIDTH / 2) mid = W - 10 - TARGET_ROAD_WIDTH / 2;
+        leftX = mid - TARGET_ROAD_WIDTH / 2;
+        rightX = mid + TARGET_ROAD_WIDTH / 2;
+      }
+      segments.push({ topY: newTopY, leftX, rightX });
+    }
+
+    // Update road scrolling
+    function updateRoad() {
+      if (currentSpeed < targetSpeed) {
+        currentSpeed += acceleration;
+        if (currentSpeed > targetSpeed) currentSpeed = targetSpeed;
+      } else if (currentSpeed > targetSpeed) {
+        currentSpeed -= acceleration;
+        if (currentSpeed < targetSpeed) currentSpeed = targetSpeed;
+      }
+      for (let seg of segments) {
+        seg.topY += currentSpeed;
+      }
+      segments = segments.filter(s => s.topY < H + 20);
+      while (segments.length < 25) { generateSegment(); }
+      dashOffset -= currentSpeed;
+    }
+
+    // Clamp player car horizontally and vertically
+    function clampCarX() {
+      for (let seg of segments) {
+        if (carY >= seg.topY && carY < seg.topY + SEGMENT_SPACING) {
+          const minX = seg.leftX + carWidth / 2;
+          const maxX = seg.rightX - carWidth / 2;
+          if (carX < minX) carX = minX;
+          if (carX > maxX) carX = maxX;
+          break;
+        }
+      }
+    }
+    function clampCarY() {
+      const minY = carHeight / 2;
+      const maxY = H - carHeight / 2;
+      if (carY < minY) carY = minY;
+      if (carY > maxY) carY = maxY;
+    }
+
+    // Draw the road background and lane dividers
+    function drawRoad() {
+      ctx.fillStyle = '#555';
+      ctx.fillRect(0, 0, W, H);
+      ctx.lineWidth = 4;
+      for (let seg of segments) {
+        const segBot = seg.topY + SEGMENT_SPACING;
+        ctx.strokeStyle = 'yellow';
+        ctx.beginPath();
+        ctx.moveTo(seg.leftX, seg.topY);
+        ctx.lineTo(seg.leftX, segBot);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(seg.rightX, seg.topY);
+        ctx.lineTo(seg.rightX, segBot);
+        ctx.stroke();
+      }
+      if (generationStage >= 2) {
+        for (let seg of segments) {
+          const segBot = seg.topY + SEGMENT_SPACING;
+          let laneWidth = (seg.rightX - seg.leftX) / 3;
+          ctx.setLineDash([15,15]);
+          ctx.strokeStyle = '#ddd';
+          ctx.lineWidth = 2;
+          let divider1 = seg.leftX + laneWidth;
+          ctx.beginPath();
+          ctx.moveTo(divider1, seg.topY);
+          ctx.lineTo(divider1, segBot);
+          ctx.stroke();
+          let divider2 = seg.leftX + 2 * laneWidth;
+          ctx.beginPath();
+          ctx.moveTo(divider2, seg.topY);
+          ctx.lineTo(divider2, segBot);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.lineWidth = 4;
+        }
+      }
+    }
+
+    // Draw the player's car
+    function drawCar() {
+      const halfWidth = carWidth / 2;
+      const halfHeight = carHeight / 2;
+      ctx.fillStyle = carColor;
+      ctx.fillRect(carX - halfWidth, carY - halfHeight, carWidth, carHeight);
+      ctx.fillStyle = "white";
+      ctx.fillRect(carX - halfWidth/2, carY - halfHeight + 4, carWidth/2, carHeight/4);
+    }
+
+    // Draw traffic cars with a wiggle effect
+    function drawTrafficCars() {
+      for (let tCar of trafficCars) {
+        let seg = getSegmentAt(tCar.y);
+        if (seg) {
+          let laneWidth = (seg.rightX - seg.leftX) / 3;
+          let baseCenter;
+          if (tCar.lane === 0) {
+            baseCenter = seg.leftX + laneWidth / 2;
+          } else if (tCar.lane === 1) {
+            baseCenter = seg.leftX + laneWidth + laneWidth/2;
+          } else {
+            baseCenter = seg.leftX + 2 * laneWidth + laneWidth/2;
+          }
+          let laneCenter = baseCenter + tCar.wiggle;
+          let halfWidth = tCar.width / 2;
+          let halfHeight = tCar.height / 2;
+          ctx.fillStyle = tCar.color;
+          ctx.fillRect(laneCenter - halfWidth, tCar.y - halfHeight, tCar.width, tCar.height);
+          ctx.fillStyle = 'white';
+          ctx.fillRect(laneCenter - halfWidth/2, tCar.y - halfHeight + 4, tCar.width/2, tCar.height/4);
+        }
+      }
+    }
+
+    // Update traffic cars: move upward at a fixed speed and update wiggle
+    function updateTrafficCars() {
+      for (let tCar of trafficCars) {
+        tCar.y -= tCar.speedOffset;  // fixed upward movement independent of player's speed
+        tCar.wiggle += tCar.wiggleDelta;
+        if (tCar.wiggle > 3 || tCar.wiggle < -3) {
+          tCar.wiggleDelta = -tCar.wiggleDelta;
+        }
+      }
+      trafficCars = trafficCars.filter(tCar => tCar.y > -50);
+      avoidTrafficOverlap();
+    }
+
+    // Prevent traffic cars in the same lane from overlapping too much
+    function avoidTrafficOverlap() {
+      const safeGap = 20;
+      for (let lane = 0; lane < 3; lane++) {
+        let laneCars = trafficCars.filter(car => car.lane === lane);
+        laneCars.sort((a, b) => a.y - b.y);
+        for (let i = 1; i < laneCars.length; i++) {
+          let lead = laneCars[i-1], follow = laneCars[i];
+          if (follow.y - lead.y < safeGap) {
+            follow.y = lead.y + safeGap;
+          }
+        }
+      }
+    }
+
+    // Draw points counter
+    function drawPoints() {
+      pointsCounter.textContent = points;
+    }
+
+    // Collision detection for solid traffic
+    function rectIntersect(r1, r2) {
+      return r1.left < r2.right &&
+             r1.right > r2.left &&
+             r1.top < r2.bottom &&
+             r1.bottom > r2.top;
+    }
+    function canMove(newX, newY) {
+      const playerRect = {
+        left: newX - carWidth/2,
+        right: newX + carWidth/2,
+        top: newY - carHeight/2,
+        bottom: newY + carHeight/2
+      };
+      for (let tCar of trafficCars) {
+        let seg = getSegmentAt(tCar.y);
+        if (!seg) continue;
+        let laneWidth = (seg.rightX - seg.leftX) / 3;
+        let baseCenter;
+        if (tCar.lane === 0) {
+          baseCenter = seg.leftX + laneWidth/2;
+        } else if (tCar.lane === 1) {
+          baseCenter = seg.leftX + laneWidth + laneWidth/2;
+        } else {
+          baseCenter = seg.leftX + 2 * laneWidth + laneWidth/2;
+        }
+        let laneCenter = baseCenter + tCar.wiggle;
+        const carRect = {
+          left: laneCenter - tCar.width/2,
+          right: laneCenter + tCar.width/2,
+          top: tCar.y - tCar.height/2,
+          bottom: tCar.y + tCar.height/2
+        };
+        if (rectIntersect(playerRect, carRect)) return false;
+      }
+      return true;
+    }
+
+    // D-pad steering with up/down support
+    let dpadInterval = null;
+    let currentDx = 0, currentDy = 0;
+    function updateJoystick(e) {
+      e.preventDefault();
+      const rect = dpad.getBoundingClientRect();
+      const centerX = rect.left + rect.width/2;
+      const centerY = rect.top + rect.height/2;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const dx = clientX - centerX;
+      const dy = clientY - centerY;
+      const steeringSpeed = 3;
+      currentDx = Math.abs(dx) > 10 ? (dx > 0 ? steeringSpeed : -steeringSpeed) : 0;
+      currentDy = Math.abs(dy) > 10 ? (dy > 0 ? steeringSpeed : -steeringSpeed) : 0;
+      if (!dpadInterval) {
+        dpadInterval = setInterval(() => {
+          if (canMove(carX + currentDx, carY)) { carX += currentDx; }
+          if (canMove(carX, carY + currentDy)) { carY += currentDy; }
+          clampCarX();
+          clampCarY();
+        }, 50);
+      }
+    }
+    function stopJoystick(e) {
+      e.preventDefault();
+      if (dpadInterval) {
+        clearInterval(dpadInterval);
+        dpadInterval = null;
+        currentDx = 0;
+        currentDy = 0;
+      }
+    }
+    const dpad = document.getElementById('dpad');
+    dpad.addEventListener('mousedown', updateJoystick);
+    dpad.addEventListener('mousemove', (e) => { if (dpadInterval) updateJoystick(e); });
+    dpad.addEventListener('mouseup', stopJoystick);
+    dpad.addEventListener('mouseleave', stopJoystick);
+    dpad.addEventListener('touchstart', updateJoystick, { passive: false });
+    dpad.addEventListener('touchmove', updateJoystick, { passive: false });
+    dpad.addEventListener('touchend', stopJoystick);
+    dpad.addEventListener('touchcancel', stopJoystick);
+
+    // A & B button handlers
+    function randomColor() {
+      let letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+    function handleButtonA(e) {
+      e.preventDefault();
+      carColor = randomColor();
+    }
+    function handleButtonBDown(e) {
+      e.preventDefault();
+      targetSpeed = maxSpeed;
+    }
+    function handleButtonBUp(e) {
+      e.preventDefault();
+      targetSpeed = 0;
+    }
+    const buttonA = document.getElementById('buttonA');
+    const buttonB = document.getElementById('buttonB');
+    buttonA.addEventListener('mousedown', (e) => { handleButtonA(e); pressButton('buttonA'); });
+    buttonA.addEventListener('touchstart', (e) => { handleButtonA(e); pressButton('buttonA'); }, { passive: false });
+    buttonB.addEventListener('mousedown', (e) => { handleButtonBDown(e); pressButton('buttonB'); });
+    buttonB.addEventListener('touchstart', (e) => { handleButtonBDown(e); pressButton('buttonB'); }, { passive: false });
+    buttonB.addEventListener('mouseup', handleButtonBUp);
+    buttonB.addEventListener('mouseleave', handleButtonBUp);
+    buttonB.addEventListener('touchend', handleButtonBUp);
+    buttonB.addEventListener('touchcancel', handleButtonBUp);
+    function pressButton(buttonId) {
+      const btn = document.getElementById(buttonId);
+      btn.classList.add('pressed');
+      setTimeout(() => { btn.classList.remove('pressed'); }, 150);
+    }
+
+    // Traffic Spawning: spawn cars from the bottom every 1.5 seconds
+    function spawnTrafficCar() {
+      if (generationStage < 2) return;
+      let spawnY = H + 20;
+      let lane = Math.floor(Math.random() * 3);
+      let speedOffset = Math.random() * 1 + 1;  // fixed speed between 1 and 2
+      let wiggle = 0;
+      let wiggleDelta = (Math.random() - 0.5) * 0.5;
+      let tCar = { lane, y: spawnY, speedOffset, width: carWidth, height: carHeight, color: randomColor(), wiggle, wiggleDelta };
+      trafficCars.push(tCar);
+    }
+    setInterval(spawnTrafficCar, 1500);
+
+    // Check if player's car is safely inside road boundaries (for scoring)
+    function checkSafe() {
+      let safe = false;
+      for (let seg of segments) {
+        if (carY >= seg.topY && carY < seg.topY + SEGMENT_SPACING) {
+          if (carX - carWidth/2 > seg.leftX + 2 && carX + carWidth/2 < seg.rightX - 2) {
+            safe = true;
+          }
+          break;
+        }
+      }
+      return safe;
+    }
+    setInterval(() => { if (checkSafe()) { points++; } }, 1000);
+
+    // Main game loop
+    function gameLoop() {
+      updateRoad();
+      updateTrafficCars();
+      drawRoad();
+      drawTrafficCars();
+      drawCar();
+      drawPoints();
+      drawSpeed();
+      clampCarX();
+      clampCarY();
+      requestAnimationFrame(gameLoop);
+    }
+    initRoad();
+    gameLoop();
+  </script>
+</body>
+</html>

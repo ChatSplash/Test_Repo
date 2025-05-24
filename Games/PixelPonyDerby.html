@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Pixel Pony Derby</title>
+  <style>
+    /* Local Pixel Font (place pixel.ttf in the same directory) */
+    @font-face {
+      font-family: 'PixelFont';
+      src: url('pixel.ttf') format('truetype');
+    }
+    body {
+      margin: 0;
+      background-color: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    /* Start Screen Overlay */
+    .start-screen-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('https://files.catbox.moe/q7tmwx.png') no-repeat center center;
+      background-size: contain; /* Ensures the entire image is visible */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      cursor: pointer;
+    }
+    .start-text {
+      font-family: 'PixelFont', sans-serif;
+      font-size: 80px;
+      color: #fff;
+      text-shadow: 3px 3px 0 #000;
+      z-index: 2100;
+      transform: translateY(96px); /* Moved down further */
+    }
+    /* Game Container */
+    .game-container {
+      position: relative;
+      width: 600px;
+      background-color: #d2b78d; /* Solid tan-dirt color */
+      border: 4px solid #fff;
+      overflow: hidden;
+      padding-bottom: 70px; /* Space for Start Race button */
+      display: none; /* Hidden until start screen is dismissed */
+    }
+    .track {
+      position: absolute;
+      width: 100%;
+      height: 70px;
+      border-bottom: 2px dashed #bbb;
+      z-index: 0;
+    }
+    .horse {
+      position: absolute;
+      width: 65px;
+      height: 65px;
+      left: 0;
+      z-index: 1;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    #finish-line {
+      position: absolute;
+      right: 10px;
+      width: 4px;
+      height: 100%;
+      background-color: yellow;
+      z-index: 2;
+    }
+    /* Start Race Button (part of the game) */
+    .start-button {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(145deg, #ffd700, #ff9900);
+      border: none;
+      padding: 12px 24px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #222;
+      border-radius: 8px;
+      cursor: pointer;
+      z-index: 100;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      -webkit-appearance: none;
+      font-family: 'PixelFont', sans-serif;
+    }
+    .start-button:active {
+      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
+      transform: translateX(-50%) translateY(2px);
+    }
+    .scoreboard {
+      position: absolute;
+      top: 5%;
+      left: 50%;
+      transform: translate(-50%, 0);
+      width: 280px;
+      background: black;
+      border: 4px solid white;
+      text-align: center;
+      padding: 15px;
+      display: none;
+      font-family: monospace;
+      color: white;
+      z-index: 500;
+    }
+    .scoreboard h2 {
+      font-size: 20px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .scoreboard p {
+      font-size: 18px;
+      margin: 6px 0;
+      font-weight: bold;
+    }
+    /* Mobile adjustments */
+    @media (max-width: 600px) {
+      .game-container {
+        width: 95vw;
+      }
+      .start-button {
+        font-size: 14px; /* Smaller font size */
+        padding: 8px 16px; /* Reduced padding */
+        bottom: 50px; /* Moved higher from the bottom */
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Start Screen Overlay -->
+  <div id="start-screen" class="start-screen-overlay" onclick="startGame()">
+    <div class="start-text">START</div>
+  </div>
+
+  <!-- Game Container -->
+  <div id="game-container" class="game-container">
+    <button id="start-race-button" class="start-button" onclick="startRace()">Start Race</button>
+    <div id="finish-line"></div>
+    <div class="scoreboard" id="scoreboard">
+      <h2>🏁 Race Results 🏁</h2>
+      <div id="results"></div>
+    </div>
+  </div>
+
+  <!-- Background Music -->
+  <audio id="bg-music" preload="auto" loop>
+    <source src="https://files.catbox.moe/iz3oxl.wav" type="audio/wav">
+  </audio>
+
+  <!-- Beep Sound -->
+  <audio id="beep-sound" preload="auto">
+    <source src="https://files.catbox.moe/22fg65.mp3" type="audio/mp3">
+  </audio>
+
+  <script>
+    const gameContainer = document.getElementById('game-container');
+    const startScreen = document.getElementById('start-screen');
+    const startRaceButton = document.getElementById('start-race-button');
+    const horsesImages = {
+      red: 'https://files.catbox.moe/n9byho.png',
+      blue: 'https://files.catbox.moe/cbb3es.png',
+      green: 'https://files.catbox.moe/a5qn0k.png',
+      purple: 'https://files.catbox.moe/ybss56.png',
+      orange: 'https://files.catbox.moe/zyf78k.png',
+      pink: 'https://files.catbox.moe/4gtlcq.png'
+    };
+    const colors = ["red", "blue", "green", "purple", "orange", "pink"];
+    let horses = [];
+    let horseWins = { red: 0, blue: 0, green: 0, purple: 0, orange: 0, pink: 0 };
+    const numHorses = colors.length;
+    let raceActive = false;
+    let raceInterval;
+    const beepSound = document.getElementById("beep-sound");
+    const bgMusic = document.getElementById("bg-music");
+
+    // Create horses for the race.
+    function createHorses() {
+      horses = [];
+      // Clear any previous tracks or horse elements.
+      gameContainer.querySelectorAll('.track, .horse').forEach(el => el.remove());
+      
+      // Set the container height based on the number of lanes.
+      gameContainer.style.height = `${numHorses * 70}px`;
+
+      for (let i = 0; i < numHorses; i++) {
+        let track = document.createElement('div');
+        track.classList.add('track');
+        track.style.top = `${i * 70}px`;
+        gameContainer.appendChild(track);
+
+        let horse = document.createElement('div');
+        horse.classList.add('horse');
+        horse.style.backgroundImage = `url(${horsesImages[colors[i]]})`;
+        // Adjusted offset so horses don't touch the track line.
+        horse.style.top = `${i * 70 + 2}px`;
+        horse.style.left = '0px';
+        gameContainer.appendChild(horse);
+
+        horses.push({
+          element: horse,
+          position: 0,
+          speed: Math.random() * 2 + 1,
+          color: colors[i],
+          finished: false
+        });
+      }
+    }
+
+    // Called when the user clicks anywhere on the start screen overlay.
+    function startGame() {
+      startScreen.style.display = 'none';     // Hide the start screen overlay.
+      gameContainer.style.display = 'block';    // Show the game container.
+      createHorses();                           // Create horses and lanes.
+      bgMusic.play(); // Play background music after interaction
+    }
+
+    function startRace() {
+      if (raceActive) return;
+      raceActive = true;
+      
+      // Hide the "Start Race" button while racing.
+      startRaceButton.style.display = 'none';
+      document.getElementById("scoreboard").style.display = "none";
+
+      // Reset horse positions.
+      horses.forEach(horse => {
+        horse.position = 0;
+        horse.element.style.left = '0px';
+        horse.speed = Math.random() * 2 + 1;
+        horse.finished = false;
+      });
+
+      let rankings = [];
+
+      raceInterval = setInterval(() => {
+        horses.forEach(horse => {
+          horse.position += Math.random() * horse.speed * 3;
+          horse.element.style.left = `${horse.position}px`;
+
+          if (horse.position >= gameContainer.clientWidth - 70 && !horse.finished) {
+            horse.finished = true;
+            rankings.push(horse);
+            beepSound.currentTime = 0;
+            beepSound.play(); // Ensure sound is triggered properly after user interaction
+          }
+        });
+
+        if (rankings.length === numHorses) {
+          clearInterval(raceInterval);
+          horseWins[rankings[0].color] += 1;
+          displayResults(rankings);
+        }
+      }, 50);
+    }
+
+    function displayResults(rankings) {
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = "";
+      
+      rankings.forEach((horse, index) => {
+        let resultLine = document.createElement('p');
+        resultLine.textContent = `#${index + 1} - ${horse.color.toUpperCase()} (${horseWins[horse.color]} wins)`;
+        resultLine.style.color = horse.color;  // Set color of text to the horse's color
+        resultsDiv.appendChild(resultLine);
+      });
+
+      // Show scoreboard after race finishes.
+      document.getElementById("scoreboard").style.display = "block";
+
+      // Reset "Start Race" button visibility.
+      startRaceButton.style.display = 'block';
+      raceActive = false;
+    }
+  </script>
+</body>
+</html>
