@@ -6,97 +6,509 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <link href="https://fonts.googleapis.com/css?family=Montserrat:600,400&display=swap" rel="stylesheet">
   <style>
-    :root { --primary: #4f8cff; --background: #181f2a; --card: #222b3a; --accent: #18ffe6; --text: #ffffff; --fade: #a0aec0; --shadow: 0 4px 14px rgba(0,0,0,0.15);}
-    html, body {height: 100%;margin: 0;padding: 0;background: var(--background);color: var(--text);font-family: 'Montserrat', Arial, sans-serif;min-height: 100vh;}
-    body {display: flex;flex-direction: column;align-items: center;min-height: 100vh;padding: 0;margin: 0;}
-    header {width: 100%;background: linear-gradient(90deg, var(--primary), var(--accent));padding: 2rem 0 1rem 0;border-bottom-left-radius: 2em 1em;border-bottom-right-radius: 2em 1em;box-shadow: var(--shadow);margin-bottom: 2rem;}
-    h1 {margin: 0;padding: 0;text-align: center;font-size: 2.5rem;letter-spacing: 2px;font-weight: 800;color: #fff;text-shadow: 0 2px 16px #4449;}
-    .container {width: 96vw;max-width: 480px;display: flex;flex-direction: column;align-items: center;gap: 2rem;margin-bottom: 2rem;}
-    .folder {width: 100%;background: var(--card);border-radius: 18px;box-shadow: var(--shadow);margin: 0 auto;transition: transform 0.12s;overflow: hidden;}
-    .folder:hover {transform: scale(1.015) translateY(-2px);box-shadow: 0 6px 20px #0003;}
-    .folder-header {display: flex;align-items: center;cursor: pointer;padding: 1.2rem 1.2rem 0.9rem 1.2rem;user-select: none;transition: background 0.14s;}
-    .folder-header:hover {background: #202a3a;}
-    .folder-title {font-size: 1.3rem;color: var(--primary);font-weight: 700;letter-spacing: 1px;text-shadow: 0 1px 4px #0002;flex: 1;}
-    .chevron {transition: transform 0.28s cubic-bezier(.4,2,.6,1);width: 1.2em;height: 1.2em;margin-right: 0.5em;fill: var(--accent);flex-shrink: 0;}
-    .folder.collapsed .chevron {transform: rotate(-90deg);}
-    .folder-content {padding: 0 1.2rem 1.2rem 1.7rem;max-height: 1000px;opacity: 1;transition: max-height 0.38s cubic-bezier(.4,2,.6,1), opacity 0.22s;will-change: max-height, opacity;}
-    .folder.collapsed .folder-content {max-height: 0;opacity: 0;padding-bottom: 0;overflow: hidden;}
-    .scripts {list-style: none;padding: 0;margin: 0;display: flex;flex-direction: column;gap: 0.6em;}
-    .scripts li {border-left: 4px solid var(--accent);background: #192030c7;border-radius: 6px;margin: 0;padding: 0.7em 0.8em;font-size: 1.06rem;display: flex;align-items: center;transition: background 0.12s;}
-    .scripts li:hover {background: #252f43;}
-    .scripts a {color: var(--accent);text-decoration: none;font-weight: 600;transition: color 0.16s;font-family: inherit;font-size: inherit;}
-    .scripts a:active, .scripts a:focus {color: var(--primary);}
-    .badge {margin-left: auto;background: var(--primary);color: #fff;border-radius: 8px;padding: 0.1em 0.7em;font-size: 0.78em;font-weight: 700;letter-spacing: 1px;opacity: 0.93;box-shadow: 0 2px 8px #0002;user-select: none;}
-    @media (max-width: 600px) {h1 {font-size: 2rem;}.container {max-width: 98vw;gap: 1.3rem;}.folder-header {padding: 0.8rem 0.5rem 0.7rem 0.7rem;}.folder-content {padding: 0 0.5rem 0.7rem 1.2rem;}.folder-title {font-size: 1.07rem;}}
-    @media (max-width: 400px) {.container {max-width: 100vw;padding: 0 2px;}.folder-header {padding-left: 0.3rem;padding-right: 0.3rem;}.folder-content {padding-left: 0.9rem;padding-right: 0.2rem;}}
-    footer {margin-top: auto;text-align: center;font-size: 0.96em;color: var(--fade);padding-bottom: 2em;letter-spacing: 1px;}
+    :root {
+      --primary: #4f8cff;
+      --background: #181f2a;
+      --card: #222b3a;
+      --accent: #18ffe6;
+      --text: #ffffff;
+      --fade: #a0aec0;
+      --shadow: 0 4px 14px rgba(0,0,0,0.15);
+      --thumb-gap: 6px;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: 'Montserrat', Arial, sans-serif;
+      min-height: 100vh;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+    }
+    header {
+      width: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      padding: 2rem 0 1rem 0;
+      border-bottom-left-radius: 2em 1em;
+      border-bottom-right-radius: 2em 1em;
+      box-shadow: var(--shadow);
+      margin-bottom: 1rem;
+    }
+    h1 {
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      font-size: 2.5rem;
+      letter-spacing: 2px;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 2px 16px #4449;
+    }
+    .top-buttons {
+      display: flex;
+      gap: 0.8em;
+      align-items: center;
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      margin-top: -2.2em;
+      margin-bottom: 1em;
+      justify-content: flex-start;
+      z-index: 10;
+      min-height: 2.6em;
+      padding-left: 0.6em;
+    }
+    .round-btn {
+      width: 2.2em;
+      height: 2.2em;
+      border-radius: 50%;
+      border: 2.5px solid #fff;
+      background: var(--background);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.14s;
+      box-shadow: 0 2px 8px #0003;
+      position: relative;
+      outline: none;
+      margin-right: 0.1em;
+    }
+    .round-btn:active {
+      border-color: var(--primary);
+      background: #222b;
+    }
+    .round-btn .dot {
+      width: 1em;
+      height: 1em;
+      border-radius: 50%;
+      background: #000;
+      display: block;
+      transition: background 0.18s;
+    }
+    .round-btn .dot.empty {
+      background: transparent;
+      border: 2px solid #fff;
+      box-sizing: border-box;
+    }
+    .round-btn .icon-list, .round-btn .icon-grid {
+      width: 1.1em;
+      height: 1.1em;
+      display: block;
+      fill: #fff;
+      transition: fill 0.2s;
+    }
+    .round-btn.active {
+      border-color: var(--accent);
+    }
+    .container {
+      width: 96vw;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      transition: all 0.34s cubic-bezier(.4,2,.6,1);
+      position: relative;
+    }
+    .folders-view {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      transition: opacity 0.33s cubic-bezier(.4,2,.6,1);
+    }
+    .folders-view.hide {
+      opacity: 0;
+      pointer-events: none;
+      position: absolute;
+      z-index: 2;
+      width: 100%;
+    }
+    .folder {
+      width: 100%;
+      background: var(--card);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      margin: 0 auto;
+      transition: transform 0.12s;
+      overflow: hidden;
+    }
+    .folder:hover {
+      transform: scale(1.015) translateY(-2px);
+      box-shadow: 0 6px 20px #0003;
+    }
+    .folder-header {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      padding: 1.2rem 1.2rem 0.9rem 1.2rem;
+      user-select: none;
+      transition: background 0.14s;
+    }
+    .folder-header:hover {
+      background: #202a3a;
+    }
+    .folder-title {
+      font-size: 1.3rem;
+      color: var(--primary);
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-shadow: 0 1px 4px #0002;
+      flex: 1;
+    }
+    .chevron {
+      transition: transform 0.28s cubic-bezier(.4,2,.6,1);
+      width: 1.2em;
+      height: 1.2em;
+      margin-right: 0.5em;
+      fill: var(--accent);
+      flex-shrink: 0;
+    }
+    .folder.collapsed .chevron {
+      transform: rotate(-90deg);
+    }
+    .folder-content {
+      padding: 0 1.2rem 1.2rem 1.7rem;
+      max-height: 1000px;
+      opacity: 1;
+      transition: max-height 0.38s cubic-bezier(.4,2,.6,1), opacity 0.22s;
+      will-change: max-height, opacity;
+    }
+    .folder.collapsed .folder-content {
+      max-height: 0;
+      opacity: 0;
+      padding-bottom: 0;
+      overflow: hidden;
+    }
+    .scripts {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6em;
+    }
+    .scripts li {
+      border-left: 4px solid var(--accent);
+      background: #192030c7;
+      border-radius: 6px;
+      margin: 0;
+      padding: 0.7em 0.8em;
+      font-size: 1.06rem;
+      display: flex;
+      align-items: center;
+      transition: background 0.12s;
+    }
+    .scripts li:hover {
+      background: #252f43;
+    }
+    .scripts a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.16s;
+      font-family: inherit;
+      font-size: inherit;
+    }
+    .scripts a:active, .scripts a:focus {
+      color: var(--primary);
+    }
+    .badge {
+      margin-left: auto;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 8px;
+      padding: 0.1em 0.7em;
+      font-size: 0.78em;
+      font-weight: 700;
+      letter-spacing: 1px;
+      opacity: 0.93;
+      box-shadow: 0 2px 8px #0002;
+      user-select: none;
+    }
+    /* --- THUMBNAIL FOLDER SELECT VIEW --- */
+    .thumbfolders-view {
+      display: none;
+      width: 100%;
+      flex-direction: column;
+      gap: 1.2em 0;
+      padding: 0.4em 0 1.3em 0;
+      justify-content: flex-start;
+      align-items: flex-start;
+      transition: opacity 0.33s cubic-bezier(.4,2,.6,1);
+      position: relative;
+      z-index: 4;
+    }
+    .thumbfolders-view.show {
+      display: flex;
+      opacity: 1;
+    }
+    .thumbfolder-card {
+      width: 100%;
+      min-width: 8em;
+      max-width: 100%;
+      height: 7em;
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      margin: 0 0 0.6em 0;
+      cursor: pointer;
+      border: 2.5px solid #1c2330;
+      transition: transform 0.13s, border 0.14s;
+      position: relative;
+      overflow: hidden;
+      font-size: 1.5em;
+      color: var(--primary);
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    .thumbfolder-card:hover, .thumbfolder-card:focus {
+      border: 2.5px solid var(--accent);
+      transform: scale(1.045) translateY(-4px);
+      z-index: 2;
+      background: #212a3d;
+    }
+    /* --- THUMBNAIL SCRIPTS GRID VIEW --- */
+    .thumbnails-folder-view {
+      display: none;
+      width: 100%;
+      flex-wrap: wrap;
+      padding: 0.4em 0 1.3em 0;
+      transition: opacity 0.33s cubic-bezier(.4,2,.6,1);
+      position: relative;
+      z-index: 5;
+    }
+    .thumbnails-folder-view.show {
+      display: flex;
+      opacity: 1;
+    }
+    #thumb-scripts-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--thumb-gap);
+      padding-top: 2.4em;
+    }
+    .thumb-card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0.5em 0.5em 0.85em 0.5em;
+      text-align: center;
+      margin: 0;
+      cursor: pointer;
+      border: 2.5px solid #1c2330;
+      transition: transform 0.13s, border 0.14s;
+      position: relative;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .thumb-card:hover, .thumb-card:focus {
+      border: 2.5px solid var(--accent);
+      transform: scale(1.045) translateY(-4px);
+      z-index: 2;
+    }
+    .thumb-title {
+      font-size: 1.02em;
+      font-weight: 650;
+      color: var(--primary);
+      margin-bottom: 0.22em;
+      line-height: 1.15;
+      text-shadow: 0 1px 4px #0003;
+      margin-top: 0.5em;
+    }
+    .thumb-badge {
+      background: var(--primary);
+      color: #fff;
+      border-radius: 8px;
+      padding: 0.12em 0.7em;
+      font-size: 0.76em;
+      font-weight: 700;
+      letter-spacing: 1px;
+      opacity: 0.93;
+      margin-top: 0.18em;
+      box-shadow: 0 2px 8px #0002;
+      user-select: none;
+      border: none;
+      display: inline-block;
+    }
+    .thumb-back {
+      position: absolute;
+      top: 0.7em;
+      left: 0.6em;
+      z-index: 10;
+      background: transparent;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 0.3em 0.4em 0.3em 0.1em;
+      border-radius: 8px;
+      transition: background 0.16s;
+      font-size: 1.2em;
+    }
+    .thumb-back:hover {
+      background: #202a3a;
+    }
+    .thumb-back svg {
+      width: 1.3em;
+      height: 1.3em;
+      fill: var(--primary);
+      display: block;
+    }
+    .thumb-folder-title {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0.7em;
+      text-align: center;
+      font-weight: 700;
+      font-size: 1.13em;
+      color: var(--primary);
+      text-shadow: 0 1px 4px #0002;
+      z-index: 1;
+      pointer-events: none;
+    }
+    @media (max-width: 600px) {
+      h1 {font-size: 2rem;}
+      .container {max-width: 98vw;gap: 1.3rem;}
+      .folder-header {padding: 0.8rem 0.5rem 0.7rem 0.7rem;}
+      .folder-content {padding: 0 0.5rem 0.7rem 1.2rem;}
+      .folder-title {font-size: 1.07rem;}
+      .top-buttons {max-width: 98vw;}
+      #thumb-scripts-grid {grid-template-columns: 1fr 1fr;}
+    }
+    @media (max-width: 400px) {
+      .container {max-width: 100vw;padding: 0 2px;}
+      .folder-header {padding-left: 0.3rem;padding-right: 0.3rem;}
+      .folder-content {padding-left: 0.9rem;padding-right: 0.2rem;}
+      #thumb-scripts-grid {grid-template-columns: 1fr;}
+    }
+    footer {
+      margin-top: auto;
+      text-align: center;
+      font-size: 0.96em;
+      color: var(--fade);
+      padding-bottom: 2em;
+      letter-spacing: 1px;
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>Projects</h1>
   </header>
+  <div class="top-buttons">
+    <!-- Toggle All Button -->
+    <button class="round-btn" id="toggle-all-btn" aria-label="Toggle all folders open/closed" tabindex="0">
+      <span class="dot"></span>
+    </button>
+    <!-- View Toggle Button -->
+    <button class="round-btn" id="toggle-view-btn" aria-label="Toggle folder/thumbnails view" tabindex="0">
+      <!-- Start as list icon -->
+      <svg class="icon-list" viewBox="0 0 20 20"><rect x="3" y="5" width="14" height="2" rx="1"/><rect x="3" y="9" width="14" height="2" rx="1"/><rect x="3" y="13" width="14" height="2" rx="1"/></svg>
+      <svg class="icon-grid" viewBox="0 0 20 20" style="display:none"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="12" y="3" width="5" height="5" rx="1"/><rect x="3" y="12" width="5" height="5" rx="1"/><rect x="12" y="12" width="5" height="5" rx="1"/></svg>
+    </button>
+  </div>
   <main class="container">
-    <!-- TOOLS -->
-    <section class="folder collapsed">
-      <div class="folder-header" tabindex="0" aria-expanded="false" aria-controls="tools-content">
-        <svg class="chevron" viewBox="0 0 20 20"><polyline points="7 7 12.5 10.5 7 14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <div class="folder-title">Tools</div>
-      </div>
-      <div class="folder-content" id="tools-content">
-        <ul class="scripts">
-          <li><a href="Tools/TerrainGen.html" target="_blank">Terrain Gen</a><span class="badge">.html</span></li>
-          <li><a href="Tools/ObjView.html" target="_blank">Obj View</a><span class="badge">.html</span></li>
-          <li><a href="Tools/HeightMapper.html" target="_blank">Height Mapper</a><span class="badge">.html</span></li>
-        </ul>
-      </div>
-    </section>
-    <!-- GAMES -->
-    <section class="folder collapsed">
-      <div class="folder-header" tabindex="0" aria-expanded="false" aria-controls="games-content">
-        <svg class="chevron" viewBox="0 0 20 20"><polyline points="7 7 12.5 10.5 7 14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <div class="folder-title">Games</div>
-      </div>
-      <div class="folder-content" id="games-content">
-        <ul class="scripts">
-          <li><a href="Games/AiDoptimals.html" target="_blank">AiDoptimals</a><span class="badge">.html</span></li>
-          <li><a href="Games/Kart.html" target="_blank">Kart</a><span class="badge">.html</span></li>
-          <li><a href="Games/PixelPonyDerby.html" target="_blank">Pixel Pony Derby</a><span class="badge">.html</span></li>
-          <li><a href="Games/PocketPixel-Hopper.html" target="_blank">Pocket Pixel - Hopper</a><span class="badge">.html</span></li>
-          <li><a href="Games/PocketPixel-Driver.html" target="_blank">PocketPixel - Driver</a><span class="badge">.html</span></li>
-          <li><a href="Games/SodaSlinger.html" target="_blank">Soda Slinger</a><span class="badge">.html</span></li>
-        </ul>
-      </div>
-    </section>
-    <!-- MISC -->
-    <section class="folder collapsed">
-      <div class="folder-header" tabindex="0" aria-expanded="false" aria-controls="misc-content">
-        <svg class="chevron" viewBox="0 0 20 20"><polyline points="7 7 12.5 10.5 7 14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <div class="folder-title">Misc</div>
-      </div>
-      <div class="folder-content" id="misc-content">
-        <ul class="scripts">
-          <li><a href="Misc/IsoBlockGen.html" target="_blank">Iso Block Gen</a><span class="badge">.html</span></li>
-          <li><a href="Misc/IsoPerlinGen.html" target="_blank">Iso Perlin Gen</a><span class="badge">.html</span></li>
-          <li><a href="Misc/Skyline.html" target="_blank">Skyline</a><span class="badge">.html</span></li>
-          <li><a href="Misc/ParticleField.html" target="_blank">Particle Field</a><span class="badge">.html</span></li>
-          <li><a href="Misc/ParticlePush.html" target="_blank">Particle Push</a><span class="badge">.html</span></li>
-          <li><a href="Misc/PlanetField.html" target="_blank">Planet Field</a><span class="badge">.html</span></li>
-        </ul>
-      </div>
-    </section>
+    <!-- FOLDER VIEW (default) -->
+    <div class="folders-view" id="folders-view">
+      <!-- TOOLS -->
+      <section class="folder">
+        <div class="folder-header" tabindex="0" aria-expanded="true" aria-controls="tools-content">
+          <svg class="chevron" viewBox="0 0 20 20"><polyline points="7 7 12.5 10.5 7 14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="folder-title">Tools</div>
+        </div>
+        <div class="folder-content" id="tools-content">
+          <ul class="scripts">
+            <li><a href="Tools/TerrainGen.html" target="_blank">Terrain Gen</a><span class="badge">.html</span></li>
+            <li><a href="Tools/ObjView.html" target="_blank">Obj View</a><span class="badge">.html</span></li>
+            <li><a href="Tools/HeightMapper.html" target="_blank">Height Mapper</a><span class="badge">.html</span></li>
+          </ul>
+        </div>
+      </section>
+      <!-- GAMES -->
+      <section class="folder">
+        <div class="folder-header" tabindex="0" aria-expanded="true" aria-controls="games-content">
+          <svg class="chevron" viewBox="0 0 20 20"><polyline points="7 7 12.5 10.5 7 14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="folder-title">Games</div>
+        </div>
+        <div class="folder-content" id="games-content">
+          <ul class="scripts">
+            <li><a href="Games/AiDoptimals.html" target="_blank">AiDoptimals</a><span class="badge">.html</span></li>
+            <li><a href="Games/Kart.html" target="_blank">Kart</a><span class="badge">.html</span></li>
+            <li><a href="Games/PixelPonyDerby.html" target="_blank">Pixel Pony Derby</a><span class="badge">.html</span></li>
+            <li><a href="Games/PocketPixel-Hopper.html" target="_blank">Pocket Pixel - Hopper</a><span class="badge">.html</span></li>
+            <li><a href="Games/PocketPixel-Driver.html" target="_blank">PocketPixel - Driver</a><span class="badge">.html</span></li>
+            <li><a href="Games/SodaSlinger.html" target="_blank">Soda Slinger</a><span class="badge">.html</span></li>
+          </ul>
+        </div>
+      </section>
+      <!-- MISC -->
+      <section class="folder">
+        <div class="folder-header" tabindex="0" aria-expanded="true" aria-controls="misc-content">
+          <svg class="chevron" viewBox="0 0 20 20"><polyline points="7 7 12.5 10.5 7 14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="folder-title">Misc</div>
+        </div>
+        <div class="folder-content" id="misc-content">
+          <ul class="scripts">
+            <li><a href="Misc/IsoBlockGen.html" target="_blank">Iso Block Gen</a><span class="badge">.html</span></li>
+            <li><a href="Misc/IsoPerlinGen.html" target="_blank">Iso Perlin Gen</a><span class="badge">.html</span></li>
+            <li><a href="Misc/Skyline.html" target="_blank">Skyline</a><span class="badge">.html</span></li>
+            <li><a href="Misc/ParticleField.html" target="_blank">Particle Field</a><span class="badge">.html</span></li>
+            <li><a href="Misc/ParticlePush.html" target="_blank">Particle Push</a><span class="badge">.html</span></li>
+            <li><a href="Misc/PlanetField.html" target="_blank">Planet Field</a><span class="badge">.html</span></li>
+          </ul>
+        </div>
+      </section>
+    </div>
+    <!-- THUMBNAIL FOLDER SELECT VIEW -->
+    <div class="thumbfolders-view" id="thumbfolders-view" aria-hidden="true">
+      <div class="thumbfolder-card" data-folder="Tools">Tools</div>
+      <div class="thumbfolder-card" data-folder="Games">Games</div>
+      <div class="thumbfolder-card" data-folder="Misc">Misc</div>
+    </div>
+    <!-- THUMBNAIL SCRIPTS GRID VIEW FOR FOLDER -->
+    <div class="thumbnails-folder-view" id="thumbnails-folder-view" aria-hidden="true">
+      <button class="thumb-back" id="thumb-back-btn" aria-label="Back to folders" tabindex="0">
+        <svg viewBox="0 0 20 20"><polyline points="13 5 7 10 13 15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="thumb-folder-title" id="thumb-folder-title"></div>
+      <div id="thumb-scripts-grid"></div>
+    </div>
   </main>
   <footer>
     <div>&copy; 2025 ChatSplash</div>
   </footer>
   <script>
+    // --- FOLDER OPEN/CLOSE LOGIC ---
     document.querySelectorAll('.folder').forEach(function(folder) {
       var header = folder.querySelector('.folder-header');
-      header.setAttribute('aria-expanded', "false");
-      folder.classList.add('collapsed');
+      header.setAttribute('aria-expanded', "true");
+      folder.classList.remove('collapsed');
       header.addEventListener('click', function() {
         folder.classList.toggle('collapsed');
         header.setAttribute('aria-expanded', String(!folder.classList.contains('collapsed')));
+        updateToggleAllBtn();
       });
       header.addEventListener('keydown', function(e) {
         if (e.key === " " || e.key === "Enter") {
@@ -105,6 +517,135 @@
         }
       });
     });
+
+    // --- TOGGLE ALL BUTTON LOGIC ---
+    const toggleAllBtn = document.getElementById('toggle-all-btn');
+    function areAllFoldersOpen() {
+      return Array.from(document.querySelectorAll('.folder')).every(f => !f.classList.contains('collapsed'));
+    }
+    function areAllFoldersClosed() {
+      return Array.from(document.querySelectorAll('.folder')).every(f => f.classList.contains('collapsed'));
+    }
+    function updateToggleAllBtn() {
+      const dot = toggleAllBtn.querySelector('.dot');
+      if (areAllFoldersClosed()) {
+        dot.classList.remove('empty');
+      } else {
+        dot.classList.add('empty');
+      }
+    }
+    updateToggleAllBtn();
+
+    toggleAllBtn.addEventListener('click', function() {
+      const folders = document.querySelectorAll('.folder');
+      if (areAllFoldersClosed()) {
+        folders.forEach(f => {
+          f.classList.remove('collapsed');
+          f.querySelector('.folder-header').setAttribute('aria-expanded', 'true');
+        });
+      } else {
+        folders.forEach(f => {
+          f.classList.add('collapsed');
+          f.querySelector('.folder-header').setAttribute('aria-expanded', 'false');
+        });
+      }
+      updateToggleAllBtn();
+    });
+
+    // --- DATA FOR SCRIPTS ---
+    const scriptsData = [
+      { name: "Terrain Gen", file: "TerrainGen.html", folder: "Tools" },
+      { name: "Obj View", file: "ObjView.html", folder: "Tools" },
+      { name: "Height Mapper", file: "HeightMapper.html", folder: "Tools" },
+
+      { name: "AiDoptimals", file: "AiDoptimals.html", folder: "Games" },
+      { name: "Kart", file: "Kart.html", folder: "Games" },
+      { name: "Pixel Pony Derby", file: "PixelPonyDerby.html", folder: "Games" },
+      { name: "Pocket Pixel - Hopper", file: "PocketPixel-Hopper.html", folder: "Games" },
+      { name: "PocketPixel - Driver", file: "PocketPixel-Driver.html", folder: "Games" },
+      { name: "Soda Slinger", file: "SodaSlinger.html", folder: "Games" },
+
+      { name: "Iso Block Gen", file: "IsoBlockGen.html", folder: "Misc" },
+      { name: "Iso Perlin Gen", file: "IsoPerlinGen.html", folder: "Misc" },
+      { name: "Skyline", file: "Skyline.html", folder: "Misc" },
+      { name: "Particle Field", file: "ParticleField.html", folder: "Misc" },
+      { name: "Particle Push", file: "ParticlePush.html", folder: "Misc" },
+      { name: "Planet Field", file: "PlanetField.html", folder: "Misc" },
+    ];
+
+    // --- VIEW TOGGLE BUTTON LOGIC ---
+    const toggleViewBtn = document.getElementById('toggle-view-btn');
+    const iconList = toggleViewBtn.querySelector('.icon-list');
+    const iconGrid = toggleViewBtn.querySelector('.icon-grid');
+    const foldersView = document.getElementById('folders-view');
+    const thumbfoldersView = document.getElementById('thumbfolders-view');
+    const thumbnailsFolderView = document.getElementById('thumbnails-folder-view');
+    const thumbBackBtn = document.getElementById('thumb-back-btn');
+    const thumbFolderTitle = document.getElementById('thumb-folder-title');
+    const thumbScriptsGrid = document.getElementById('thumb-scripts-grid');
+
+    let showingThumbnails = false;
+    let inFolder = null;
+
+    toggleViewBtn.addEventListener('click', function() {
+      showingThumbnails = !showingThumbnails;
+      inFolder = null;
+      if (showingThumbnails) {
+        foldersView.classList.add('hide');
+        thumbfoldersView.classList.add('show');
+        thumbnailsFolderView.classList.remove('show');
+        iconList.style.display = 'none';
+        iconGrid.style.display = 'block';
+      } else {
+        foldersView.classList.remove('hide');
+        thumbfoldersView.classList.remove('show');
+        thumbnailsFolderView.classList.remove('show');
+        iconList.style.display = 'block';
+        iconGrid.style.display = 'none';
+      }
+    });
+
+    // --- THUMBNAIL FOLDER SELECT ---
+    thumbfoldersView.querySelectorAll('.thumbfolder-card').forEach(card => {
+      card.addEventListener('click', function() {
+        inFolder = card.dataset.folder;
+        showFolderThumbnails(inFolder);
+      });
+    });
+
+    function showFolderThumbnails(folderName) {
+      thumbfoldersView.classList.remove('show');
+      thumbnailsFolderView.classList.add('show');
+      thumbFolderTitle.textContent = folderName;
+      thumbScriptsGrid.innerHTML = '';
+      scriptsData.filter(s => s.folder === folderName).forEach(item => {
+        const d = document.createElement('a');
+        d.className = 'thumb-card';
+        d.href = `${item.folder}/${item.file}`;
+        d.target = '_blank';
+        d.innerHTML = `<div class="thumb-title">${item.name}</div>
+          <div class="thumb-badge">.html</div>`;
+        thumbScriptsGrid.appendChild(d);
+      });
+    }
+
+    thumbBackBtn.addEventListener('click', function() {
+      inFolder = null;
+      thumbnailsFolderView.classList.remove('show');
+      thumbfoldersView.classList.add('show');
+    });
+
+    document.querySelectorAll('.round-btn, .thumb-back').forEach(btn => {
+      btn.addEventListener('keydown', function(e) {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          btn.click();
+        }
+      });
+    });
+
+    thumbfoldersView.classList.remove('show');
+    thumbnailsFolderView.classList.remove('show');
   </script>
 </body>
 </html>
